@@ -103,6 +103,10 @@ In Command Prompt or PowerShell, choose an encrypted input folder and a separate
 
 Add `--donors "C:\HealthyPhotos"` when you have healthy photos from the same camera. The encrypted inputs are read only by this command-line workflow. Recovery is partial reconstruction, not decryption; results may be incomplete and should be reviewed.
 
+If a photo appears upside down, add `--rotate 180`. The Windows guide in the zip covers rotation, multiple donor folders, and installing FFmpeg for video cases that need it.
+
+The Windows zip includes a PowerShell demo that generates its own synthetic image and `.kook` container under your temporary folder. Run `Set-ExecutionPolicy -Scope Process Bypass`, then `.\demo\Run-Synthetic-Demo.ps1` to try the workflow without using personal media. The demo illustrates embedded-image salvage only, not decryption or full-photo reconstruction.
+
 ## Windows: build from source
 
 1. **`setup.bat`** - once. Finds Python 3.11+ (offers to install it), creates a private
@@ -183,7 +187,7 @@ are skipped, so re-running is safe.
 * EXIF, GPS and the capture date are inside the destroyed part; they are not restored.
 * Without `--donors`, colours are estimated from the surviving data - usually right, but skin
   tones and skies can be slightly off.
-* Videos need `ffmpeg` on `PATH` for sound (setup mentions it; optional).
+* The Windows CLI needs `ffmpeg` on `PATH` for some MP4 videos whose playback index was encrypted; it can also help with sound. See the [Windows CLI guide](WINDOWS-CLI.md) for installation steps. The macOS app uses `ffprobe` to validate rebuilt videos.
 * Camera tables learned from your photos are cached in `.cache\` next to the script (or in
   the temp folder if that is not writable).
 * Files under ~150 KB were encrypted completely - nothing left to rebuild.

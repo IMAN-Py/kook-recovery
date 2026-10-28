@@ -38,6 +38,10 @@ jobs:
       - name: Verify executable startup
         run: .\dist\Kook-Recovery.exe --check
 
+      - name: Run synthetic demo
+        shell: pwsh
+        run: .\demo\Run-Synthetic-Demo.ps1 -OutputRoot "$env:RUNNER_TEMP\kook-recovery-synthetic-demo" -ExePath ".\dist\Kook-Recovery.exe"
+
       - name: Assemble release zip
         shell: pwsh
         run: |
@@ -47,6 +51,7 @@ jobs:
           Copy-Item "WINDOWS-CLI.md" "$package\README.md"
           Copy-Item "LICENSE" $package
           Copy-Item "THIRD-PARTY-NOTICES.md" $package
+          Copy-Item "demo" $package -Recurse
           Compress-Archive -Path "$package\*" -DestinationPath "dist\Kook-Recovery-Windows-x64.zip" -Force
 
       - name: Upload Windows package to release
