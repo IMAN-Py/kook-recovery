@@ -3,7 +3,7 @@
 Recover photos and videos from STOP/Djvu ransomware files such as `.kook` with
 local, partial reconstruction. No decryption key or network access is used.
 
-**Original project code and app: Copyright © 2026 Iman Batabaei.** Third-party
+**Original project code and app: Copyright © 2026 Iman .** Third-party
 components retain their authorship and licenses; see [third-party notices](THIRD-PARTY-NOTICES.md).
 
 Suggested repository name: `kook-recovery`  
