@@ -16,9 +16,11 @@ and inferred colours, dimensions, and alignment may differ from the original.
 
 ## macOS desktop app
 
-Build the app with `./build-macos.sh`, then open **`dist/Djvu Recover.app`** in Finder.
-The build needs Swift command-line tools, Python 3.11+, and the packages in
-`requirements.txt` installed in `.venv`. Drop encrypted files or folders into the
+Download the latest [Apple Silicon macOS disk image](https://github.com/IMAN-Py/kook-recovery/releases/latest/download/Kook-Recovery-macOS-arm64.dmg), open it, and drag **Djvu Recover.app** to Applications. On first launch, macOS may require Control-click → **Open** because the app is not notarized.
+
+To build from source, install Swift command-line tools, Python 3.11+, and the
+packages in `requirements-build.txt` into `.venv`, then run `./build-macos.sh`.
+Drop encrypted files or folders into the
 drop area, or use **Add files / Add folder**. Selections accumulate; duplicates are
 removed automatically, and individual entries can be removed with their × buttons.
 Click **Recover in place**. There is no output-folder selection.
@@ -55,9 +57,10 @@ Video replacement additionally requires `ffprobe` to validate the rebuilt video 
 If it is unavailable, the encrypted video is left unchanged. **Stop** leaves unfinished
 files untouched; already completed replacements remain in place.
 
-The macOS app currently uses a local Python virtual environment and is not a
-self-contained installer. Build it on your Mac with `./build-macos.sh`; the engine's
-writable cache is stored in `~/Library/Caches/local.djvu-recover.desktop`.
+The downloadable macOS app bundles its Python runtime; the engine's writable cache
+is stored in `~/Library/Caches/local.djvu-recover.desktop`. The release currently
+targets Apple Silicon. Video replacement requires `ffprobe` to be installed on the
+Mac; without it, encrypted videos remain untouched.
 
 To rebuild after changes, run `./build-macos.sh` again.
 

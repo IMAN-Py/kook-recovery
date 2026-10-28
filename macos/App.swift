@@ -575,7 +575,13 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         do {
             let resources = Bundle.main.resourceURL!
-            let python = try String(contentsOf: resources.appendingPathComponent("python-path.txt"), encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
+            let bundledPython = resources.appendingPathComponent("runtime/DjvuPython")
+            let python: String
+            if FileManager.default.isExecutableFile(atPath: bundledPython.path) {
+                python = bundledPython.path
+            } else {
+                python = try String(contentsOf: resources.appendingPathComponent("python-path.txt"), encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
             guard FileManager.default.isExecutableFile(atPath: python) else {
                 throw NSError(domain: "Recovery", code: 1, userInfo: [NSLocalizedDescriptionKey: "Python runtime is missing. Rebuild with build-macos.sh in the djvu-recover folder."])
             }

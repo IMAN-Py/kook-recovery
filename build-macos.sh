@@ -10,6 +10,12 @@ fi
 app_dir="$project_dir/dist/Djvu Recover.app"
 mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources/engine/vendor" "$project_dir/.swift-cache"
 swiftc -swift-version 5 -module-cache-path "$project_dir/.swift-cache" -O macos/App.swift -o "$app_dir/Contents/MacOS/DjvuRecover" -framework AppKit
+.venv/bin/python -m PyInstaller --noconfirm --clean --onedir --name DjvuPython \
+    --distpath "$project_dir/build/pyinstaller-dist" \
+    --workpath "$project_dir/build/pyinstaller-work" \
+    --specpath "$project_dir/build" \
+    --collect-all numpy --collect-all PIL macos/python-runtime.py
+ditto "$project_dir/build/pyinstaller-dist/DjvuPython" "$app_dir/Contents/Resources/runtime"
 cp recover.py app_backend.py "$app_dir/Contents/Resources/engine/"
 cp -R vendor/photophoenix "$app_dir/Contents/Resources/engine/vendor/"
 cp THIRD-PARTY-NOTICES.md "$app_dir/Contents/Resources/"
@@ -28,9 +34,9 @@ cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <key>CFBundleVersion</key><string>1</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
-<key>NSHumanReadableCopyright</key><string>Recovery engine: Copyright 2026 Ahmed Raza Bhatti. PolyForm Noncommercial 1.0.0. See bundled notices.</string>
+<key>NSHumanReadableCopyright</key><string>Original app: Copyright 2026 Iman Batabaei. PhotoPhoenix: Copyright 2026 Ahmed Raza Bhatti. See bundled notices.</string>
 </dict></plist>
 PLIST
 codesign --force --deep --sign - "$app_dir"
 echo "Built: $app_dir"
-echo "This local build uses $project_dir/.venv; keep the project folder in place."
+echo "The app includes its Python runtime. ffprobe is still required for video validation."
