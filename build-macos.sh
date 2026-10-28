@@ -1,0 +1,36 @@
+#!/bin/bash
+set -euo pipefail
+cd "$(dirname "$0")"
+project_dir="$PWD"
+if [ ! -x .venv/bin/python ]; then
+    echo "Create .venv and install requirements.txt first (see README.md)."
+    exit 1
+fi
+.venv/bin/python recover.py --check
+app_dir="$project_dir/dist/Djvu Recover.app"
+mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources/engine/vendor" "$project_dir/.swift-cache"
+swiftc -swift-version 5 -module-cache-path "$project_dir/.swift-cache" -O macos/App.swift -o "$app_dir/Contents/MacOS/DjvuRecover" -framework AppKit
+cp recover.py app_backend.py "$app_dir/Contents/Resources/engine/"
+cp -R vendor/photophoenix "$app_dir/Contents/Resources/engine/vendor/"
+cp THIRD-PARTY-NOTICES.md "$app_dir/Contents/Resources/"
+if [ -d .cache ]; then cp -R .cache "$app_dir/Contents/Resources/engine/"; fi
+printf '%s\n' "$project_dir/.venv/bin/python" > "$app_dir/Contents/Resources/python-path.txt"
+cat > "$app_dir/Contents/Info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleExecutable</key><string>DjvuRecover</string>
+<key>CFBundleIdentifier</key><string>local.djvu-recover.desktop</string>
+<key>CFBundleName</key><string>Djvu Recover</string>
+<key>CFBundleDisplayName</key><string>Djvu Recover</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleShortVersionString</key><string>1.0.0</string>
+<key>CFBundleVersion</key><string>1</string>
+<key>LSMinimumSystemVersion</key><string>14.0</string>
+<key>NSHighResolutionCapable</key><true/>
+<key>NSHumanReadableCopyright</key><string>Recovery engine: Copyright 2026 Ahmed Raza Bhatti. PolyForm Noncommercial 1.0.0. See bundled notices.</string>
+</dict></plist>
+PLIST
+codesign --force --deep --sign - "$app_dir"
+echo "Built: $app_dir"
+echo "This local build uses $project_dir/.venv; keep the project folder in place."

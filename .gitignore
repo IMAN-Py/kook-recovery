@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.cache/
+
+# macOS and local builds
+.DS_Store
+.swift-cache/
+dist/
+build/
+
+# Local recovery data, reports, and test artifacts
+Recovered/
+test-results/
+app-test-results/
+ui-tests/
+tests/photo-job.json
+*.kook
+*.djvu
+*.coot
+*.nile
+*.derp
+*.document
+*.bora
+*.nasoh
+*.nozelesn
+*.muslat
+*.litar
+*.skynet
+*.gero
+*.hese
+*.mbed
+*.grod
+*.mkp
+*.lokf
+*.nusm
+*.paas
+*.tabe
+*.vcv
+*.vvoa
+*.udjvu
+*.djvut
+*.djvuu
+*.djvur
+*.djvuc
+*.djvuq
+*.djvus
+
+# macOS app build intermediates
+*.app/

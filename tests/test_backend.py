@@ -1,0 +1,223 @@
+import contextlib
+import errno
+import io
+import json
+import os
+from pathlib import Path
+import signal
+import tempfile
+import unittest
+from unittest.mock import patch
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import app_backend as backend
+from PIL import Image
+
+MARKER = b"{36A698B9-D67C-4E07-BE82-0EC5B14B4DF5}"
+
+
+def encrypted(path, head=b"\xff\xd8\xff\xe1\x00"):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(head + bytes(5000) + bytes(256) + b"A" * 40 + MARKER)
+
+
+def jpeg(path):
+    Image.new('RGB', (64, 32), (40, 100, 200)).save(path, 'JPEG')
+
+
+def success(path, dest, lib, grey, rotate):
+    if grey != 'crop':
+        raise AssertionError('Only cropped output is allowed')
+    jpeg(dest)
+    return 'ok', 'cropped test result', [dest]
+
+
+class BackendTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name).resolve()
+        self.cache = self.root / 'cache'
+        self.cache.mkdir()
+        patcher = patch.object(backend.recover, 'cache_dir', return_value=str(self.cache))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def job(self, inputs, worker=success):
+        output = io.StringIO()
+        with patch.object(backend.recover, 'build_library', return_value=object()), patch.object(backend.recover, 'recover_photo', side_effect=worker), contextlib.redirect_stdout(output):
+            code = backend.run({'inputs': list(map(str, inputs))})
+        events = [json.loads(line) for line in output.getvalue().splitlines()]
+        return code, events
+
+    def test_replaces_success_in_same_folder_and_keeps_only_one_file(self):
+        source = self.root / 'Photos/photo.jpg.kook'
+        encrypted(source)
+        code, events = self.job([source])
+        self.assertEqual(code, 0)
+        self.assertFalse(source.exists())
+        target = source.with_suffix('')
+        with Image.open(target) as image:
+            image.load()
+            self.assertEqual(image.size, (64, 32))
+        self.assertEqual(list(source.parent.iterdir()), [target])
+        result = next(e for e in events if e['event'] == 'result')
+        self.assertTrue(result['original_removed'])
+        self.assertEqual(result['files'], [str(target)])
+        self.assertFalse(list(self.root.rglob('*.kook')))
+
+    def test_nested_folders_and_healthy_files_are_preserved(self):
+        photos = self.root / 'Photos'
+        a, b = photos / 'photo.jpg.kook', photos / 'Nested/photo.jpg.kook'
+        encrypted(a)
+        encrypted(b)
+        healthy = photos / 'notes.txt'
+        healthy.write_text('keep me')
+        self.assertEqual(self.job([photos])[0], 0)
+        files = {p.relative_to(photos).as_posix() for p in photos.rglob('*') if p.is_file()}
+        self.assertEqual(files, {'photo.jpg', 'Nested/photo.jpg', 'notes.txt'})
+        self.assertEqual(healthy.read_text(), 'keep me')
+
+    def test_failed_and_unsupported_files_are_left_byte_for_byte(self):
+        photos = self.root / 'Photos'
+        failed = photos / 'bad.jpg.kook'
+        unsupported = photos / 'document.pdf.kook'
+        encrypted(failed)
+        encrypted(unsupported, head=b'%PDF-')
+        before = {p: p.read_bytes() for p in (failed, unsupported)}
+        def fail(path, dest, *args):
+            Path(dest).write_bytes(b'incomplete')
+            raise ValueError('No matching camera')
+        code, events = self.job([photos], worker=fail)
+        self.assertEqual(code, 2)
+        self.assertEqual(events[-1]['failed'], 2)
+        self.assertEqual(set(photos.iterdir()), set(before))
+        for path, data in before.items():
+            self.assertEqual(path.read_bytes(), data)
+
+    def test_invalid_generated_jpeg_never_replaces_source(self):
+        source = self.root / 'photo.jpg.kook'
+        encrypted(source)
+        before = source.read_bytes()
+        def broken(path, dest, *args):
+            Path(dest).write_bytes(b'not a jpeg')
+            return 'ok', 'test', [dest]
+        self.assertEqual(self.job([source], broken)[0], 2)
+        self.assertEqual(source.read_bytes(), before)
+        self.assertFalse(source.with_suffix('').exists())
+
+    def test_review_result_keeps_original(self):
+        source = self.root / 'photo.jpg.kook'
+        encrypted(source)
+        before = source.read_bytes()
+        def review(*args):
+            _, detail, files = success(*args)
+            return 'review', detail, files
+        self.assertEqual(self.job([source], review)[0], 2)
+        self.assertEqual(source.read_bytes(), before)
+        self.assertFalse(source.with_suffix('').exists())
+
+    def test_existing_target_keeps_both_existing_files_unchanged(self):
+        source = self.root / 'photo.jpg.kook'
+        encrypted(source)
+        target = source.with_suffix('')
+        target.write_bytes(b'existing')
+        before = source.read_bytes()
+        code, events = self.job([source], worker=lambda *a: self.fail('Should not run recovery'))
+        self.assertEqual(code, 0)
+        self.assertEqual(events[-1]['skipped'], 1)
+        self.assertEqual(source.read_bytes(), before)
+        self.assertEqual(target.read_bytes(), b'existing')
+
+    def test_source_changed_during_recovery_is_not_deleted(self):
+        source = self.root / 'photo.jpg.kook'
+        encrypted(source)
+        def changed(path, *args):
+            result = success(path, *args)
+            Path(path).write_bytes(b'changed by another process')
+            return result
+        self.assertEqual(self.job([source], changed)[0], 2)
+        self.assertEqual(source.read_bytes(), b'changed by another process')
+        self.assertFalse(source.with_suffix('').exists())
+
+    def test_unlink_failure_rolls_back_new_image(self):
+        source = self.root / 'photo.jpg.kook'
+        encrypted(source)
+        before = source.read_bytes()
+        unlink = Path.unlink
+        def guarded(path, *args, **kwargs):
+            if path == source:
+                raise PermissionError('Cannot delete original')
+            return unlink(path, *args, **kwargs)
+        with patch.object(Path, 'unlink', guarded):
+            self.assertEqual(self.job([source])[0], 2)
+        self.assertEqual(source.read_bytes(), before)
+        self.assertFalse(source.with_suffix('').exists())
+
+    def test_corrupted_saved_copy_rolls_back_without_deleting_original(self):
+        source = self.root / 'photo.jpg.kook'
+        encrypted(source)
+        before = source.read_bytes()
+        def bad_publish(reconstructed, folder):
+            target = folder / Path(reconstructed).name
+            target.write_bytes(b'corrupted during write')
+            return target
+        with patch.object(backend, 'publish_file', side_effect=bad_publish):
+            self.assertEqual(self.job([source])[0], 2)
+        self.assertEqual(source.read_bytes(), before)
+        self.assertFalse(source.with_suffix('').exists())
+
+    def test_overlapping_selections_and_symlinks_are_not_processed_twice(self):
+        source = self.root / 'Photos/Nested/photo.jpg.kook'
+        encrypted(source)
+        (source.parent / 'alias.jpg.kook').symlink_to(source)
+        items = backend.collect([str(source), str(source.parent), str(self.root / 'Photos')])
+        self.assertEqual([p for p, _, _ in items], [source])
+
+    def test_empty_selection_fails(self):
+        with self.assertRaisesRegex(ValueError, 'Select'):
+            backend.run({'inputs': []})
+
+    def test_non_hardlink_filesystem_uses_safe_fallback(self):
+        source = self.root / 'photo.jpg.kook'
+        encrypted(source)
+        with patch.object(backend.os, 'link', side_effect=OSError(errno.ENOTSUP, 'Unsupported')):
+            self.assertEqual(self.job([source])[0], 0)
+        self.assertFalse(source.exists())
+        self.assertTrue(source.with_suffix('').exists())
+
+    def test_cancellation_during_commit_cannot_remove_both_files(self):
+        source = self.root / 'Photos/photo.jpg.kook'
+        encrypted(source)
+        reconstructed = self.root / 'photo.jpg'
+        jpeg(reconstructed)
+        expected = backend.digest(source)
+        publish = backend.publish_file
+        class Cancelled(BaseException):
+            pass
+        def handler(signum, frame):
+            raise Cancelled()
+        def cancelling_publish(*args):
+            target = publish(*args)
+            os.kill(os.getpid(), signal.SIGTERM)
+            return target
+        old_handler = signal.signal(signal.SIGTERM, handler)
+        try:
+            with patch.object(backend, 'publish_file', side_effect=cancelling_publish), self.assertRaises(Cancelled):
+                backend.replace_source(source, reconstructed, expected, 'photo')
+        finally:
+            signal.signal(signal.SIGTERM, old_handler)
+        self.assertFalse(source.exists())
+        with Image.open(source.with_suffix('')) as image:
+            image.load()
+
+    def test_invalid_video_is_rejected_without_external_tools(self):
+        movie = self.root / 'movie.mp4'
+        movie.write_bytes(b'unverified')
+        with patch.object(backend.shutil, 'which', return_value=None), self.assertRaisesRegex(ValueError, 'too small'):
+            backend.validate_result(movie, 'video')
+
+
+if __name__ == '__main__':
+    unittest.main()

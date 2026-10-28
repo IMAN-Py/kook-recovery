@@ -1,0 +1,196 @@
+# Kook Recovery
+
+Recover photos and videos from STOP/Djvu ransomware files such as `.kook` with
+local, partial reconstruction. No decryption key or network access is used.
+
+**Original project code and app: Copyright © 2026 Iman Batabaei.** Third-party
+components retain their authorship and licenses; see [third-party notices](THIRD-PARTY-NOTICES.md).
+
+Suggested repository name: `kook-recovery`  
+Suggested GitHub description: `Recover photos and videos from STOP/Djvu .kook ransomware files with local partial reconstruction.`
+
+Attempt partial reconstruction of photos and videos damaged by STOP/Djvu ransomware
+(extensions like `.kook`, `.coot`, `.djvu`, `.nile`, …). Recovery runs locally without
+a key or an internet connection. This is not decryption: encrypted bytes remain lost,
+and inferred colours, dimensions, and alignment may differ from the original.
+
+## macOS desktop app
+
+Build the app with `./build-macos.sh`, then open **`dist/Djvu Recover.app`** in Finder.
+The build needs Swift command-line tools, Python 3.11+, and the packages in
+`requirements.txt` installed in `.venv`. Drop encrypted files or folders into the
+drop area, or use **Add files / Add folder**. Selections accumulate; duplicates are
+removed automatically, and individual entries can be removed with their × buttons.
+Click **Recover in place**. There is no output-folder selection.
+
+Photos are saved as **cropped results only**, with the missing strip removed where possible.
+Expand **Recovery options** for rotation or healthy reference files from the same camera.
+Your rotation setting is remembered.
+The window shows progress by completed file and elapsed time; it does not estimate how
+much of an individual photo has finished. Inputs are locked while recovery is running.
+
+The **Recovered files** menu switches between the recovered files. Each source produces
+one output: a cropped photo (or recovered video). **Open file** opens the selected result in its default app;
+**Show results** opens the original folder for the first selected source. Activity details stay collapsed until requested
+or an error occurs. Quitting during recovery asks before stopping the active job.
+
+Recovery now happens **in the exact original folders**. For example,
+`Holiday/IMG_1234.jpg.kook` becomes `Holiday/IMG_1234.jpg`. On successful validation,
+the encrypted `.kook` file is deleted. **No backup of successfully replaced originals is
+kept.** This is partial, cropped reconstruction, so the missing encrypted image data
+cannot be recovered later from a deleted original.
+
+The app checks that a generated JPEG fully decodes, verifies the saved bytes and unchanged
+source, and only then removes the encrypted file. If source deletion fails, it removes
+its newly generated result and retains the original. Cancellation is deferred across
+this short replacement step so it cannot delete both files.
+
+Unsupported formats, failed reconstructions, results flagged for review, and filename
+conflicts are left untouched. Healthy files are ignored. Original filenames and nested
+folder locations are preserved, removing only the ransomware suffix. No numbered names,
+extra folders, full-image duplicates, or backup copies are created. Reports containing
+paths, status, and checksums are stored in the app cache under `reports/`.
+
+Video replacement additionally requires `ffprobe` to validate the rebuilt video stream.
+If it is unavailable, the encrypted video is left unchanged. **Stop** leaves unfinished
+files untouched; already completed replacements remain in place.
+
+The macOS app currently uses a local Python virtual environment and is not a
+self-contained installer. Build it on your Mac with `./build-macos.sh`; the engine's
+writable cache is stored in `~/Library/Caches/local.djvu-recover.desktop`.
+
+To rebuild after changes, run `./build-macos.sh` again.
+
+Validation:
+
+```sh
+.venv/bin/python -m unittest discover -s tests -v
+"dist/Djvu Recover.app/Contents/MacOS/DjvuRecover" --smoke-test "/path/disposable-copy.jpg.kook" "/path/test-artifacts" --rotate-180
+```
+
+The smoke test opens the native window, runs the same worker used by the Recover button,
+loads the recovered preview, and saves `app-smoke-test.json` and `app-preview.png` in
+`<test-artifacts>-diagnostics` before closing. It modifies the selected input in place;
+use disposable copies for tests. Omit `--rotate-180` to test without rotation.
+
+Run `./macos/test-app.sh` for the GUI suite. It creates disposable copies of the sample
+and checks individual-file and nested-folder replacement, failure preservation, filename
+conflicts, cancellation, and batches mixing successful and unsupported files. It verifies
+cropped JPEGs, deletion of only successfully replaced encrypted files, and byte-for-byte
+preservation of everything else. The user's supplied sample is never modified by this
+suite. Reports and captures are under `ui-tests/in-place-*/`.
+
+## Command-line launcher (separate, copy-based workflow)
+
+The older `recover.py` launcher below still writes to a separate output folder. The
+macOS app uses `app_backend.py` and the in-place behavior described above.
+
+It asks for the folder(s) holding the encrypted files, then for an output folder, and
+rebuilds everything it can.
+
+## Windows: two clicks
+
+1. **`setup.bat`** - once. Finds Python 3.11+ (offers to install it), creates a private
+   `.venv` next to the tool, installs numpy + Pillow, runs a self-check. Nothing else on the
+   computer is touched.
+2. **`run.bat`** - every time. Asks the two questions, shows progress, keeps the window open
+   at the end.
+
+```
+====================================================================
+ STOP/Djvu photo & video recovery
+====================================================================
+Folder(s) holding the encrypted files - one per line, empty line when done.
+
+  folder> C:\Users\me\Downloads
+    + C:\Users\me\Downloads
+
+Where should the recovered files go?
+  output folder [C:\Users\me\Downloads\recovered]:
+```
+
+macOS/Linux: `./setup.sh`, then `./.venv/bin/python recover.py`.
+
+## Supported formats - and why not every format
+
+STOP/Djvu overwrites only the **first ~150 KB** of a file, so for anything bigger the rest is
+still on disk. Getting a usable file back means decoding that surviving data **without the
+header that was destroyed**. That is possible when the format can be re-aligned from the
+middle; it is not possible when the header is the only key to the rest.
+
+| Format | Result |
+|---|---|
+| **JPEG** - `.jpg` (the usual phone/camera photo), also `.jpeg`, `.jfif` | partial reconstruction when surviving data can be matched; some image area is missing |
+| **MP4 family** (`.mp4`, `.m4v`, `.mov`, `.3gp`, `.3g2`) with the index at the end (most Android) | rebuilt and plays; the first second or two glitches |
+| **MP4 family** with the index at the start (iPhone, chat apps, editors) | rebuilt **with `--donors`**: one healthy video from the same phone |
+| PNG, HEIC/HEIF, TIFF, RAW, GIF, BMP | **not rebuildable** - the compressed stream/palette/tile index lives in the destroyed header, so the surviving bytes cannot be decoded |
+| AVI, MKV, WebM | **not rebuildable** - codec and track layout are only in the destroyed header |
+| PDF, Office, ZIP/RAR, everything else | **not rebuildable** |
+
+The tool tells you what it found and skips the rest rather than writing broken files:
+
+```
+Found 41 file(s) this tool can rebuild: 37 photo(s), 4 video(s).
+  formats: .jpg x31, .jpeg x6, .mov x3, .mp4 x1
+Found 9 more encrypted file(s) that cannot be rebuilt: .png x6, .pdf x2, .zip x1
+```
+
+It does **not** decrypt anything. The key is held by the attackers; nothing on your computer
+can reverse those 150 KB. Keep the encrypted originals - if a key ever leaks, they can be
+fully decrypted.
+
+## Options
+
+```
+py recover.py [FOLDER ...] [-o OUTPUT] [--donors FOLDER] [--grey keep|crop|both]
+              [--rotate 0|90|180|270] [--overwrite] [--check]
+```
+
+* `--donors FOLDER` - healthy, unencrypted photos/videos from the **same phone**. These can
+  improve colour and camera-table estimates and help rebuild videos whose index was
+  destroyed. Results still require visual review. Repeat the flag for several folders.
+* `--grey keep` (default) keeps the lost strip as grey, `crop` cuts it off, `both` writes a
+  normal file plus a ` (cropped)` copy.
+* `--rotate 180` - photos taken with an EXIF rotation flag lose that flag, so they come out
+  upside down; this turns them upright.
+* `--overwrite` - redo files that are already in the output folder.
+* `--check` - print the environment the engine sees and exit (used by `setup.bat`).
+* Folders on the command line skip the first question; `-o` skips the second.
+
+Output keeps the folder structure of the input and drops the ransomware extension:
+`DCIM\2016\IMG_1234.jpg.kook` -> `<output>\DCIM\2016\IMG_1234.jpg`. Files already recovered
+are skipped, so re-running is safe.
+
+## Limits worth knowing
+
+* A thin strip at the top of each photo is gone - about 4 % of a 3-4 MB photo, but up to half
+  of a 300-500 KB one.
+* EXIF, GPS and the capture date are inside the destroyed part; they are not restored.
+* Without `--donors`, colours are estimated from the surviving data - usually right, but skin
+  tones and skies can be slightly off.
+* Videos need `ffmpeg` on `PATH` for sound (setup mentions it; optional).
+* Camera tables learned from your photos are cached in `.cache\` next to the script (or in
+  the temp folder if that is not writable).
+* Files under ~150 KB were encrypted completely - nothing left to rebuild.
+
+## After a STOP/Djvu infection
+
+The malware usually arrives with cracked software or "activators". Scan the machine, and do
+not pay: online-key files cannot be decrypted by anyone but the attackers, and this tool does
+not need a key.
+
+## Licence and credits
+
+The recovery engine is **[PhotoPhoenix](https://github.com/ahmed-raza-bhatti/photophoenix)**
+by Ahmed Raza Bhatti, vendored under `vendor/photophoenix` and used under the
+**PolyForm Noncommercial License 1.0.0** - free for personal, research, education, charity and
+public-sector use; **commercial use requires a separate licence** from its author. See
+`THIRD-PARTY-NOTICES.md` and `vendor/photophoenix/LICENSE.txt`.
+
+Modifications to the vendored copy: the hard-coded filemarker GUID was generalised to a
+pattern so every STOP/Djvu variant is recognised (`has_marker()` in `engine.py`).
+
+The scanner can identify some JPEG and MP4-family files from their surviving
+signatures even when their filename extension is missing or misleading. Other
+formats may contain a separate intact embedded image that can be salvaged, but
+this does not reconstruct or decrypt the original file.
