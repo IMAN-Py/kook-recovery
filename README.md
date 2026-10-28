@@ -91,7 +91,19 @@ macOS app uses `app_backend.py` and the in-place behavior described above.
 It asks for the folder(s) holding the encrypted files, then for an output folder, and
 rebuilds everything it can.
 
-## Windows: two clicks
+## Windows command-line download (64-bit)
+
+Download and extract [Kook-Recovery-Windows-x64.zip](https://github.com/IMAN-Py/kook-recovery/releases/latest/download/Kook-Recovery-Windows-x64.zip). It contains a standalone command-line executable; Python is not required.
+
+In Command Prompt or PowerShell, choose an encrypted input folder and a separate output folder:
+
+```powershell
+.\Kook-Recovery.exe "E:\Encrypted" --output "E:\Recovered" --grey crop
+```
+
+Add `--donors "C:\HealthyPhotos"` when you have healthy photos from the same camera. The encrypted inputs are read only by this command-line workflow. Recovery is partial reconstruction, not decryption; results may be incomplete and should be reviewed.
+
+## Windows: build from source
 
 1. **`setup.bat`** - once. Finds Python 3.11+ (offers to install it), creates a private
    `.venv` next to the tool, installs numpy + Pillow, runs a self-check. Nothing else on the
