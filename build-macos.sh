@@ -8,6 +8,7 @@ if [ ! -x .venv/bin/python ]; then
 fi
 .venv/bin/python recover.py --check
 app_dir="$project_dir/dist/Djvu Recover.app"
+rm -rf "$app_dir"
 mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources/engine/vendor" "$project_dir/.swift-cache"
 swiftc -swift-version 5 -module-cache-path "$project_dir/.swift-cache" -O macos/App.swift -o "$app_dir/Contents/MacOS/DjvuRecover" -framework AppKit
 .venv/bin/python -m PyInstaller --noconfirm --clean --onedir --name DjvuPython \
@@ -19,8 +20,6 @@ ditto "$project_dir/build/pyinstaller-dist/DjvuPython" "$app_dir/Contents/Resour
 cp recover.py app_backend.py "$app_dir/Contents/Resources/engine/"
 cp -R vendor/photophoenix "$app_dir/Contents/Resources/engine/vendor/"
 cp THIRD-PARTY-NOTICES.md "$app_dir/Contents/Resources/"
-if [ -d .cache ]; then cp -R .cache "$app_dir/Contents/Resources/engine/"; fi
-printf '%s\n' "$project_dir/.venv/bin/python" > "$app_dir/Contents/Resources/python-path.txt"
 cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

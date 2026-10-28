@@ -17,22 +17,22 @@ name = sample.name
 for rel in ['success', 'folder/Photos', 'folder/Photos/Nested', 'cancel', 'conflict', 'mixed']:
     dest = root / 'inputs' / rel
     dest.mkdir(parents=True)
-    shutil.copyfile(sample, dest / '20160601_210832.jpg.kook')
+    shutil.copyfile(sample, dest / 'sample.jpg.kook')
 marker = b'{36A698B9-D67C-4E07-BE82-0EC5B14B4DF5}'
 for rel in ['error', 'mixed']:
     dest = root / 'inputs' / rel
     dest.mkdir(parents=True, exist_ok=True)
     (dest / 'document.pdf.kook').write_bytes(b'%PDF-' + bytes(5000) + bytes(256) + b'A' * 40 + marker)
     (dest / 'notes.txt').write_text('Do not modify this healthy file.')
-(root / 'inputs/conflict/20160601_210832.jpg').write_bytes(b'Existing file must remain untouched.')
+(root / 'inputs/conflict/sample.jpg').write_bytes(b'Existing file must remain untouched.')
 manifest = {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in (root / 'inputs').rglob('*') if p.is_file()}
 (root / 'before.json').write_text(json.dumps(manifest))
 (root / 'sample-sha256.txt').write_text(hashlib.sha256(sample.read_bytes()).hexdigest())
 PY
-"$app" --smoke-test "$test_root/inputs/success/20160601_210832.jpg.kook" "$test_root/success" --rotate-180
+"$app" --smoke-test "$test_root/inputs/success/sample.jpg.kook" "$test_root/success" --rotate-180
 "$app" --smoke-test "$test_root/inputs/folder/Photos" "$test_root/folder" --rotate-180
 "$app" --smoke-test "$test_root/inputs/error" "$test_root/error" --expect-error
-"$app" --smoke-test "$test_root/inputs/cancel/20160601_210832.jpg.kook" "$test_root/cancel" --cancel-test
+"$app" --smoke-test "$test_root/inputs/cancel/sample.jpg.kook" "$test_root/cancel" --cancel-test
 "$app" --smoke-test "$test_root/inputs/conflict" "$test_root/conflict" --expect-skipped
 "$app" --smoke-test "$test_root/inputs/mixed" "$test_root/mixed" --rotate-180 --expect-mixed
 .venv/bin/python - "$test_root" "$photo" <<'PY'
