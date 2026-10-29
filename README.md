@@ -1,4 +1,4 @@
-# Kook Recovery
+# STOP/Djvu Recovery
 
 Recover photos and videos from STOP/Djvu ransomware files ending in `.kook`, `.coot`, `.nile`, `.geno`, `.moss`, `.usam`, or `.maas` with
 local, partial reconstruction. No decryption key or network access is used.
@@ -6,7 +6,7 @@ local, partial reconstruction. No decryption key or network access is used.
 **Original project code and app: Copyright © 2026 Iman .** Third-party
 components retain their authorship and licenses; see [third-party notices](THIRD-PARTY-NOTICES.md).
 
-Suggested repository name: `kook-recovery`  
+Repository name: `stop-djvu-recovery`
 Suggested GitHub description: `Local partial photo/video recovery for STOP/Djvu: .kook, .coot, .nile, .geno, .moss, .usam, .maas.`
 
 Attempt partial reconstruction of photos and videos damaged by STOP/Djvu ransomware
@@ -24,7 +24,7 @@ Available starting with **v1.1.0**. Download the latest release to get the addit
 
 ## macOS desktop app
 
-Download the latest [Apple Silicon macOS disk image](https://github.com/IMAN-Py/kook-recovery/releases/latest/download/Kook-Recovery-macOS-arm64.dmg), open it, and drag **Djvu Recover.app** to Applications. On first launch, macOS may require Control-click → **Open** because the app is not notarized.
+Download the latest [Apple Silicon macOS disk image](https://github.com/IMAN-Py/stop-djvu-recovery/releases/latest/download/STOP-Djvu-Recovery-macOS-arm64.dmg), open it, and drag **STOP-Djvu Recovery.app** to Applications. On first launch, macOS may require Control-click → **Open** because the app is not notarized.
 
 To build from source, install Swift command-line tools, Python 3.11+, and the
 packages in `requirements-build.txt` into `.venv`, then run `./build-macos.sh`.
@@ -76,7 +76,7 @@ Validation:
 
 ```sh
 .venv/bin/python -m unittest discover -s tests -v
-"dist/Djvu Recover.app/Contents/MacOS/DjvuRecover" --smoke-test "/path/disposable-copy.jpg.kook" "/path/test-artifacts" --rotate-180
+"dist/STOP-Djvu Recovery.app/Contents/MacOS/DjvuRecover" --smoke-test "/path/disposable-copy.jpg.kook" "/path/test-artifacts" --rotate-180
 ```
 
 The smoke test opens the native window, runs the same worker used by the Recover button,
@@ -101,12 +101,12 @@ rebuilds everything it can.
 
 ## Windows command-line download (64-bit)
 
-Download and extract [Kook-Recovery-Windows-x64.zip](https://github.com/IMAN-Py/kook-recovery/releases/latest/download/Kook-Recovery-Windows-x64.zip). It contains a standalone command-line executable; Python is not required.
+Download and extract [STOP-Djvu-Recovery-Windows-x64.zip](https://github.com/IMAN-Py/stop-djvu-recovery/releases/latest/download/STOP-Djvu-Recovery-Windows-x64.zip). It contains a standalone command-line executable; Python is not required.
 
 In Command Prompt or PowerShell, choose an encrypted input folder and a separate output folder:
 
 ```powershell
-.\Kook-Recovery.exe "E:\Encrypted" --output "E:\Recovered" --grey crop
+.\STOP-Djvu-Recovery.exe "E:\Encrypted" --output "E:\Recovered" --grey crop
 ```
 
 Add `--donors "C:\HealthyPhotos"` when you have healthy photos from the same camera. The encrypted inputs are read only by this command-line workflow. Recovery is partial reconstruction, not decryption; results may be incomplete and should be reviewed.

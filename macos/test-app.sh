@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-app="$PWD/dist/Djvu Recover.app/Contents/MacOS/DjvuRecover"
+app="$PWD/dist/STOP-Djvu Recovery.app/Contents/MacOS/DjvuRecover"
 photo="${DJVU_RECOVER_SAMPLE:-}"
 if [[ -z "$photo" || ! -f "$photo" ]]; then
   echo "Set DJVU_RECOVER_SAMPLE to a disposable encrypted JPEG sample before running this suite." >&2

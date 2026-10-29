@@ -1,12 +1,12 @@
 param(
     [string]$OutputRoot = (Join-Path $env:TEMP ("kook-recovery-synthetic-demo-" + [guid]::NewGuid().ToString("N"))),
-    [string]$ExePath = (Join-Path (Split-Path -Parent $PSScriptRoot) "Kook-Recovery.exe")
+    [string]$ExePath = (Join-Path (Split-Path -Parent $PSScriptRoot) "STOP-Djvu-Recovery.exe")
 )
 
 $ErrorActionPreference = "Stop"
 $exe = $ExePath
 if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) {
-    throw "Kook-Recovery.exe must be next to the demo folder. Extract the complete Windows release zip first."
+    throw "STOP-Djvu-Recovery.exe must be next to the demo folder. Extract the complete Windows release zip first."
 }
 if (Test-Path -LiteralPath $OutputRoot) {
     throw "The demo output path already exists. Choose a new path with -OutputRoot; existing files are never overwritten."

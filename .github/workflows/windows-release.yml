@@ -33,28 +33,28 @@ jobs:
       - name: Build standalone CLI
         run: >-
           python -m PyInstaller --noconfirm --clean --onefile
-          --name Kook-Recovery --add-data "vendor;vendor" recover.py
+          --name STOP-Djvu-Recovery --add-data "vendor;vendor" recover.py
 
       - name: Verify executable startup
-        run: .\dist\Kook-Recovery.exe --check
+        run: .\dist\STOP-Djvu-Recovery.exe --check
 
       - name: Run synthetic demo
         shell: pwsh
-        run: .\demo\Run-Synthetic-Demo.ps1 -OutputRoot "$env:RUNNER_TEMP\kook-recovery-synthetic-demo" -ExePath ".\dist\Kook-Recovery.exe"
+        run: .\demo\Run-Synthetic-Demo.ps1 -OutputRoot "$env:RUNNER_TEMP\kook-recovery-synthetic-demo" -ExePath ".\dist\STOP-Djvu-Recovery.exe"
 
       - name: Assemble release zip
         shell: pwsh
         run: |
-          $package = "dist\Kook-Recovery-Windows-x64"
+          $package = "dist\STOP-Djvu-Recovery-Windows-x64"
           New-Item -ItemType Directory -Path $package | Out-Null
-          Copy-Item "dist\Kook-Recovery.exe" $package
+          Copy-Item "dist\STOP-Djvu-Recovery.exe" $package
           Copy-Item "WINDOWS-CLI.md" "$package\README.md"
           Copy-Item "LICENSE" $package
           Copy-Item "THIRD-PARTY-NOTICES.md" $package
           Copy-Item "demo" $package -Recurse
-          Compress-Archive -Path "$package\*" -DestinationPath "dist\Kook-Recovery-Windows-x64.zip" -Force
+          Compress-Archive -Path "$package\*" -DestinationPath "dist\STOP-Djvu-Recovery-Windows-x64.zip" -Force
 
       - name: Upload Windows package to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$env:RELEASE_TAG" "dist\Kook-Recovery-Windows-x64.zip" --clobber
+        run: gh release upload "$env:RELEASE_TAG" "dist\STOP-Djvu-Recovery-Windows-x64.zip" --clobber

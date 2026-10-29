@@ -141,9 +141,9 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let item = NSMenuItem()
         menu.addItem(item)
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About Djvu Recover", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "About STOP/Djvu Recovery", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Quit Djvu Recover", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit STOP/Djvu Recovery", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.submenu = appMenu
         let editItem = NSMenuItem(title: "Edit", action: nil, keyEquivalent: "")
         let edit = NSMenu(title: "Edit")
@@ -155,7 +155,7 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1120, height: 800),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = "Djvu Recover"
+        window.title = "STOP/Djvu Recovery"
         window.minSize = NSSize(width: 1000, height: 740)
         window.delegate = self
         window.isReleasedWhenClosed = false
@@ -163,13 +163,13 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.contentView = WindowSurface(frame: window.contentView!.bounds)
         let content = window.contentView!
         content.wantsLayer = true
-        let logo = NSImageView(image: NSImage(systemSymbolName: "photo.badge.arrow.down", accessibilityDescription: "Djvu Recover")!)
+        let logo = NSImageView(image: NSImage(systemSymbolName: "photo.badge.arrow.down", accessibilityDescription: "STOP/Djvu Recovery")!)
         logo.contentTintColor = .controlAccentColor
         logo.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 32, weight: .medium)
         logo.widthAnchor.constraint(equalToConstant: 46).isActive = true
         let subtitle = label(".kook · .coot · .nile · .geno · .moss · .usam · .maas", size: 13)
         subtitle.textColor = .secondaryLabelColor
-        let titles = stack([label("Djvu Recover", size: 25, bold: true), subtitle], spacing: 4)
+        let titles = stack([label("STOP/Djvu Recovery", size: 25, bold: true), subtitle], spacing: 4)
         let local = label("On-device recovery  ·  No backups", size: 12)
         local.textColor = .secondaryLabelColor
         let header = stack([logo, titles, flexibleSpace(), local], vertical: false, spacing: 12)

@@ -1,19 +1,19 @@
 # Windows command-line package
 
-Download `Kook-Recovery-Windows-x64.zip` from the [GitHub Releases page](https://github.com/IMAN-Py/kook-recovery/releases/latest) and extract it. The standalone `Kook-Recovery.exe` does not require a separate Python install. Run `Kook-Recovery.exe --help` to see all options.
+Download `STOP-Djvu-Recovery-Windows-x64.zip` from the [GitHub Releases page](https://github.com/IMAN-Py/stop-djvu-recovery/releases/latest) and extract it. The standalone `STOP-Djvu-Recovery.exe` does not require a separate Python install. Run `STOP-Djvu-Recovery.exe --help` to see all options.
 
 ## Basic recovery
 
 Pass an encrypted input folder and a separate output folder:
 
 ```powershell
-.\Kook-Recovery.exe "E:\Encrypted" --output "E:\Recovered" --grey crop
+.\STOP-Djvu-Recovery.exe "E:\Encrypted" --output "E:\Recovered" --grey crop
 ```
 
 You can pass more than one input folder:
 
 ```powershell
-.\Kook-Recovery.exe "E:\Phone backup" "F:\Camera card" --output "D:\Recovered" --grey crop
+.\STOP-Djvu-Recovery.exe "E:\Phone backup" "F:\Camera card" --output "D:\Recovered" --grey crop
 ```
 
 The CLI reads encrypted inputs and writes recovered files to a separate output folder. It never replaces or deletes those originals. Existing output files are kept; rerunning the command skips them.
@@ -23,13 +23,13 @@ The CLI reads encrypted inputs and writes recovered files to a separate output f
 Healthy photos from the same camera help estimate its JPEG tables and colors. Use one or more reference folders with `--donors`:
 
 ```powershell
-.\Kook-Recovery.exe "E:\Encrypted" --output "E:\Recovered" --donors "C:\HealthyPhotos" --grey crop
+.\STOP-Djvu-Recovery.exe "E:\Encrypted" --output "E:\Recovered" --donors "C:\HealthyPhotos" --grey crop
 ```
 
 Repeat `--donors` to add another folder. The reference photos are read only. If photos appear upside down because their original EXIF orientation was encrypted, set `--rotate 180`. The supported values are `0`, `90`, `180`, and `270` degrees:
 
 ```powershell
-.\Kook-Recovery.exe "E:\Encrypted" --output "E:\Recovered" --donors "C:\HealthyPhotos" --rotate 180 --grey crop
+.\STOP-Djvu-Recovery.exe "E:\Encrypted" --output "E:\Recovered" --donors "C:\HealthyPhotos" --rotate 180 --grey crop
 ```
 
 ## Optional FFmpeg for video recovery

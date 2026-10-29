@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1
+
+- Rename the project to STOP/Djvu Recovery, covering the supported ransomware family.
+- Update app branding, repository links, and macOS/Windows download names.
+- Recovery capabilities and experimental variant status are unchanged.
+
 ## 1.1.0
 
 - Enable partial recovery attempts for `.coot`, `.nile`, `.geno`, `.moss`, `.usam`, and `.maas`, alongside `.kook`, in the desktop app and CLI.

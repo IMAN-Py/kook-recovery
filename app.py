@@ -23,7 +23,7 @@ import recover
 class App:
     def __init__(self, root):
         self.root = root
-        root.title("djvu-recover - rebuild STOP/Djvu photos and videos")
+        root.title("STOP/Djvu Recovery")
         root.geometry("900x660")
         root.minsize(760, 560)
         self.messages = queue.Queue()
@@ -136,7 +136,7 @@ class App:
     def open_out(self):
         path = self.out_default.get().strip()
         if not path or not os.path.isdir(path):
-            messagebox.showinfo("djvu-recover", "No output folder yet.")
+            messagebox.showinfo("STOP/Djvu Recovery", "No output folder yet.")
             return
         if sys.platform == "win32":
             os.startfile(path)  # noqa: S606
@@ -148,13 +148,13 @@ class App:
     def start(self):
         folders = [f for f in self.folders if os.path.isdir(f)]
         if not folders:
-            messagebox.showwarning("djvu-recover", "Add at least one folder holding the encrypted files.")
+            messagebox.showwarning("STOP/Djvu Recovery", "Add at least one folder holding the encrypted files.")
             return
         out = self.out_default.get().strip() or os.path.join(folders[0], "recovered")
         try:
             os.makedirs(out, exist_ok=True)
         except OSError as exc:
-            messagebox.showerror("djvu-recover", f"Cannot create the output folder:\n{exc}")
+            messagebox.showerror("STOP/Djvu Recovery", f"Cannot create the output folder:\n{exc}")
             return
         self.out_default.set(out)
         self.stop_flag.clear()
@@ -253,7 +253,7 @@ class App:
 
     def on_close(self):
         if self.thread and self.thread.is_alive():
-            if not messagebox.askyesno("djvu-recover", "A recovery is running. Stop it and close?"):
+            if not messagebox.askyesno("STOP/Djvu Recovery", "A recovery is running. Stop it and close?"):
                 return
             self.stop_flag.set()
         self.root.destroy()

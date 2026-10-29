@@ -7,7 +7,7 @@ if [ ! -x .venv/bin/python ]; then
     exit 1
 fi
 .venv/bin/python recover.py --check
-app_dir="$project_dir/dist/Djvu Recover.app"
+app_dir="$project_dir/dist/STOP-Djvu Recovery.app"
 rm -rf "$app_dir"
 mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources/engine/vendor" "$project_dir/.swift-cache"
 swiftc -swift-version 5 -module-cache-path "$project_dir/.swift-cache" -O macos/App.swift -o "$app_dir/Contents/MacOS/DjvuRecover" -framework AppKit
@@ -26,11 +26,11 @@ cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <plist version="1.0"><dict>
 <key>CFBundleExecutable</key><string>DjvuRecover</string>
 <key>CFBundleIdentifier</key><string>local.djvu-recover.desktop</string>
-<key>CFBundleName</key><string>Djvu Recover</string>
-<key>CFBundleDisplayName</key><string>Djvu Recover</string>
+<key>CFBundleName</key><string>STOP-Djvu Recovery</string>
+<key>CFBundleDisplayName</key><string>STOP-Djvu Recovery</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>1.1.0</string>
-<key>CFBundleVersion</key><string>2</string>
+<key>CFBundleShortVersionString</key><string>1.1.1</string>
+<key>CFBundleVersion</key><string>3</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSHumanReadableCopyright</key><string>Original app: Copyright 2026 Iman Batabaei. PhotoPhoenix: Copyright 2026 Ahmed Raza Bhatti. See bundled notices.</string>
