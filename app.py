@@ -41,6 +41,7 @@ class App:
     # ------------------------------------------------------------ layout
     def _build(self):
         pad = dict(padx=10, pady=6)
+        ttk.Label(self.root, text="Partial recovery: " + ", ".join(recover.RANSOMWARE_EXTENSIONS)).pack(padx=10, pady=6)
         top = ttk.Frame(self.root)
         top.pack(fill="x", **pad)
 

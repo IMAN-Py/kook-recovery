@@ -13,7 +13,7 @@ Videos can be gigabytes, so the output is streamed to disk; nothing big is held 
 """
 import os, struct
 
-from .engine import ENC_END, TRAILER, MARKER, MARKER_LEN, has_marker
+from .engine import ENC_END, TRAILER, MARKER, MARKER_LEN, has_marker, RANSOMWARE_EXTENSIONS
 
 VIDEO_EXT = (".mp4", ".m4v", ".3gp", ".3g2", ".mov")
 BRANDS = {".3gp": (b"3gp4", [b"3gp4", b"isom"]), ".3g2": (b"3g2a", [b"3g2a", b"isom"]),
@@ -24,7 +24,7 @@ CONTAINERS = (b"trak", b"mdia", b"minf", b"stbl", b"edts")
 
 def is_video(name):
     n = name.lower()
-    if n.endswith(".coot"): n = n[:-5]
+    if os.path.splitext(n)[1] in RANSOMWARE_EXTENSIONS: n = os.path.splitext(n)[0]
     return n.endswith(VIDEO_EXT)
 
 
@@ -118,7 +118,7 @@ def recover_video(path, dest, progress=None):
         mdat_size = moov_at - (media_start - 8)
         big = mdat_size > 0xFFFFFFFF
         mdat_at = media_start - (16 if big else 8)
-        ext = os.path.splitext(path[:-5] if path.lower().endswith(".coot") else path)[1].lower()
+        ext = os.path.splitext(os.path.splitext(path)[0] if os.path.splitext(path)[1].lower() in RANSOMWARE_EXTENSIONS else path)[1].lower()
         head = _file_header(mdat_at, *BRANDS.get(ext, BRANDS[".mp4"]))
         if head is None:
             raise ValueError("unexpected video layout")

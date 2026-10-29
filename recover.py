@@ -34,6 +34,8 @@ MARKER_LEN = 38
 MARKER_RE = re.compile(rb"\{[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}\}")
 ID_RE = re.compile(rb"[A-Za-z0-9]{40}")
 
+RANSOMWARE_EXTENSIONS = engine.RANSOMWARE_EXTENSIONS
+
 JPEG_EXT = (".jpg", ".jpeg", ".jfif")
 VIDEO_EXT = tuple(video.VIDEO_EXT)
 MEDIA_EXT = JPEG_EXT + VIDEO_EXT
@@ -70,15 +72,15 @@ def encrypted_payload_size(path):
 
 
 def inspect(path):
-    if not str(path).lower().endswith(".kook"):
+    if not str(path).lower().endswith(RANSOMWARE_EXTENSIONS):
         return False, None
     try:
         encrypted_payload_size(path)
         with open(path, "rb") as stream:
             head = stream.read(5)
     except (OSError, ValueError):
-        # Include every .kook in the report, even an empty or damaged file.
-        return (True, "salvage") if str(path).lower().endswith(".kook") else (False, None)
+        # Include every selected ransomware suffix in the report, even an empty or damaged file.
+        return (True, "salvage") if str(path).lower().endswith(RANSOMWARE_EXTENSIONS) else (False, None)
     if head[:3] == b"\xff\xd8\xff":
         return True, "photo"
     # Only the first five bytes survived: plausible ftyp length + first letter.
@@ -93,7 +95,7 @@ def inspect(path):
 def original_name(path, kind=None):
     name = os.path.basename(path)
     stem, ext = os.path.splitext(name)
-    if ext.lower() == ".kook" or (stem and os.path.splitext(stem)[1].lower() in MEDIA_EXT):
+    if ext.lower() in RANSOMWARE_EXTENSIONS:
         name = stem
     if kind in ("photo", "video"):
         base, extension = os.path.splitext(name)

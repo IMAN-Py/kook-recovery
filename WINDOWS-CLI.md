@@ -67,3 +67,7 @@ This demo shows extraction of a complete image embedded beyond the encrypted reg
 Recovery is partial reconstruction, not decryption. Missing encrypted data cannot be restored, and output needs review. Files too small to have surviving data or with unsupported formats may remain unrecovered.
 
 The package includes third-party notices. PhotoPhoenix is licensed under the PolyForm Noncommercial License 1.0.0; commercial use requires a separate license from its author.
+
+## Ransomware suffixes
+
+Current source supports partial recovery attempts for `.kook`, `.coot`, `.nile`, `.geno`, `.moss`, `.usam`, and `.maas`. The additional suffixes have synthetic coverage; real samples per variant remain unverified. Compatible STOP/Djvu structure and successful output validation are required. Earlier release binaries must be rebuilt to include this support.

@@ -122,8 +122,9 @@ def commit_guard():
 
 
 def replace_source(source, reconstructed, before, kind):
-    if source.suffix.lower() != ".kook":
-        raise ValueError("Only .kook source files may be replaced.")
+    if source.suffix.lower() not in recover.RANSOMWARE_EXTENSIONS:
+        raise ValueError("Only supported STOP/Djvu source suffixes may be replaced.")
+    recover.encrypted_payload_size(source)
     target = source.with_name(recover.original_name(str(source), kind))
     if target == source or Path(reconstructed).name != target.name:
         raise ValueError("Cannot determine the original filename; encrypted file left unchanged.")

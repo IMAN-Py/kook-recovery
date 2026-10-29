@@ -1,18 +1,26 @@
 # Kook Recovery
 
-Recover photos and videos from STOP/Djvu ransomware files such as `.kook` with
+Recover photos and videos from STOP/Djvu ransomware files ending in `.kook`, `.coot`, `.nile`, `.geno`, `.moss`, `.usam`, or `.maas` with
 local, partial reconstruction. No decryption key or network access is used.
 
 **Original project code and app: Copyright © 2026 Iman .** Third-party
 components retain their authorship and licenses; see [third-party notices](THIRD-PARTY-NOTICES.md).
 
 Suggested repository name: `kook-recovery`  
-Suggested GitHub description: `Recover photos and videos from STOP/Djvu .kook ransomware files with local partial reconstruction.`
+Suggested GitHub description: `Local partial photo/video recovery for STOP/Djvu: .kook, .coot, .nile, .geno, .moss, .usam, .maas.`
 
 Attempt partial reconstruction of photos and videos damaged by STOP/Djvu ransomware
-(extensions like `.kook`, `.coot`, `.djvu`, `.nile`, …). Recovery runs locally without
+(enabled suffixes: `.kook`, `.coot`, `.nile`, `.geno`, `.moss`, `.usam`, `.maas`). Recovery runs locally without
 a key or an internet connection. This is not decryption: encrypted bytes remain lost,
 and inferred colours, dimensions, and alignment may differ from the original.
+
+## Ransomware suffix support
+
+The app and CLI accept `.kook`, `.coot`, `.nile`, `.geno`, `.moss`, `.usam`, and `.maas` (case insensitive). Recovery requires the compatible STOP/Djvu layout: five surviving initial bytes, an encrypted 150 KB region, and a 334-byte trailer. A matching suffix or trailer alone does not prove recovery is possible; reconstructed outputs must also pass validation.
+
+The six additional suffixes are enabled with synthetic regression coverage. Real encrypted samples from each variant have not yet been verified. Older `.djvu`, `.udjvu`, and `.djvuu` variants are not enabled. Fully encrypted files still require a key or an intact backup. Other suffixes and healthy files are ignored.
+
+This support describes the current source and newly built app. Previously downloaded releases retain their original capabilities until rebuilt or replaced by a newer release.
 
 ## macOS desktop app
 
@@ -38,7 +46,7 @@ or an error occurs. Quitting during recovery asks before stopping the active job
 
 Recovery now happens **in the exact original folders**. For example,
 `Holiday/IMG_1234.jpg.kook` becomes `Holiday/IMG_1234.jpg`. On successful validation,
-the encrypted `.kook` file is deleted. **No backup of successfully replaced originals is
+the encrypted file with a supported suffix is deleted. **No backup of successfully replaced originals is
 kept.** This is partial, cropped reconstruction, so the missing encrypted image data
 cannot be recovered later from a deleted original.
 
@@ -207,7 +215,7 @@ public-sector use; **commercial use requires a separate licence** from its autho
 `THIRD-PARTY-NOTICES.md` and `vendor/photophoenix/LICENSE.txt`.
 
 Modifications to the vendored copy: the hard-coded filemarker GUID was generalised to a
-pattern so every STOP/Djvu variant is recognised (`has_marker()` in `engine.py`).
+pattern to recognise compatible trailer shapes (`has_marker()` in `engine.py`).
 
 The scanner can identify some JPEG and MP4-family files from their surviving
 signatures even when their filename extension is missing or misleading. Other

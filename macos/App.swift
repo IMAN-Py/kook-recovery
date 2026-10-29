@@ -167,7 +167,7 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         logo.contentTintColor = .controlAccentColor
         logo.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 32, weight: .medium)
         logo.widthAnchor.constraint(equalToConstant: 46).isActive = true
-        let subtitle = label("Recover what survives. Keep what matters.", size: 13)
+        let subtitle = label(".kook · .coot · .nile · .geno · .moss · .usam · .maas", size: 13)
         subtitle.textColor = .secondaryLabelColor
         let titles = stack([label("Djvu Recover", size: 25, bold: true), subtitle], spacing: 4)
         let local = label("On-device recovery  ·  No backups", size: 12)

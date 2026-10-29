@@ -34,6 +34,7 @@ MARKER_LEN = len(MARKER)
 # STOP/Djvu variants append a filemarker that is a GUID in braces; only the GUID differs per
 # variant, so match the shape instead of one hard-coded value.
 MARKER_RE = re.compile(rb"\{[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}\}")
+RANSOMWARE_EXTENSIONS = (".kook", ".coot", ".nile", ".geno", ".moss", ".usam", ".maas")
 TRAILER = 334
 
 

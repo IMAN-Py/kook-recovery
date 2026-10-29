@@ -51,6 +51,25 @@ class BackendTests(unittest.TestCase):
         events = [json.loads(line) for line in output.getvalue().splitlines()]
         return code, events
 
+    def test_all_enabled_suffixes_replace_only_valid_sources(self):
+        for suffix in backend.recover.RANSOMWARE_EXTENSIONS:
+            with self.subTest(suffix=suffix):
+                folder = self.root / suffix[1:]
+                source = folder / ('photo.jpg' + suffix.upper())
+                encrypted(source)
+                code, _ = self.job([source])
+                self.assertEqual(code, 0)
+                self.assertFalse(source.exists())
+                self.assertTrue((folder / 'photo.jpg').exists())
+                bad = folder / ('bad.jpg' + suffix)
+                bad.write_bytes(b'not encrypted')
+                result = self.root / 'bad.jpg'
+                jpeg(result)
+                with self.assertRaises(ValueError):
+                    backend.replace_source(bad, result, backend.digest(bad), 'photo')
+                self.assertEqual(bad.read_bytes(), b'not encrypted')
+                self.assertFalse((folder / 'bad.jpg').exists())
+
     def test_replaces_success_in_same_folder_and_keeps_only_one_file(self):
         source = self.root / 'Photos/photo.jpg.kook'
         encrypted(source)

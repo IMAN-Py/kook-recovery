@@ -24,6 +24,19 @@ class FormatTests(unittest.TestCase):
         p.write_bytes(head + bytes(size-len(head)) + tail + TRAILER)
         return p
 
+    def test_supported_suffixes_and_video_names(self):
+        for suffix in recover.RANSOMWARE_EXTENSIONS:
+            with self.subTest(suffix=suffix):
+                p = self.fixture('clip.mov' + suffix.upper(), b'\x00\x00\x00\x18f')
+                self.assertEqual(recover.inspect(p), (True, 'video'))
+                self.assertEqual(recover.original_name(p), 'clip.mov')
+                self.assertTrue(recover.video.is_video(str(p)))
+                p = self.fixture('document.pdf' + suffix, b'%PDF-')
+                self.assertEqual(recover.original_name(p), 'document.pdf')
+        for suffix in ['.djvu', '.udjvu', '.djvuu', '.unknown', '']:
+            p = self.fixture('healthy.jpg' + suffix, b'\xff\xd8\xff\xe1\x00')
+            self.assertEqual(recover.inspect(p), (False, None))
+
     def test_extensionless_video_and_name_preservation(self):
         p = self.fixture('20200207_193427 (1003).kook', b'\x00\x00\x00\x18f')
         self.assertEqual(recover.inspect(p), (True, 'video'))

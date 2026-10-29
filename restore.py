@@ -348,7 +348,7 @@ def main(argv=None):
     parser.add_argument("--from", dest="source_folder",
                         help="folder that already holds the recovered copies (e.g. LEXAR\\OUTPUT)")
     parser.add_argument("--apply", action="store_true", help="really write and delete (default is a dry run)")
-    parser.add_argument("--keep-encrypted", action="store_true", help="write the recovered file but keep the .kook")
+    parser.add_argument("--keep-encrypted", action="store_true", help="write the recovered file but keep the encrypted source")
     parser.add_argument("--copy", dest="copy_only", action="store_true",
                         help="copy the recovered file instead of moving it (keeps it in the old folder)")
     parser.add_argument("--report", help="write a summary of every file to this text file")
