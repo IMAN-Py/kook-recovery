@@ -48,6 +48,10 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var donor: String?
     var resultFolder: String?
     var worker: Process?
+    var resumeReport: String?
+    var retryMode = "resume"
+    let deleteOriginal = NSButton(checkboxWithTitle: "Delete originals after successful recovery", target: nil, action: nil)
+    var previewDetails: [String: String] = [:]
     var configURL: URL?
     var cancelled = false
     var finishedEvent = false
@@ -62,7 +66,7 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let openButton = NSButton(title: "Open file", target: nil, action: nil)
     let emptySymbol = NSImageView()
     let emptyTitle = NSTextField(labelWithString: "Your recovered files will appear here")
-    let emptyHint = NSTextField(wrappingLabelWithString: "Add encrypted files, then choose Recover in place.")
+    let emptyHint = NSTextField(wrappingLabelWithString: "Add encrypted files, then choose Recover files.")
     let previewContainer = NSBox()
     let elapsedLabel = NSTextField(labelWithString: "")
     let phaseLabel = NSTextField(labelWithString: "Add files to get started")
@@ -84,7 +88,7 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let progress = NSProgressIndicator()
     let log = NSTextView()
     let rotate = NSPopUpButton()
-    let recoverButton = NSButton(title: "Recover in place", target: nil, action: nil)
+    let recoverButton = NSButton(title: "Recover files", target: nil, action: nil)
     let cancelButton = NSButton(title: "Stop", target: nil, action: nil)
     let revealButton = NSButton(title: "Show results", target: nil, action: nil)
     var editingButtons: [NSButton] = []
@@ -170,7 +174,7 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let subtitle = label(".kook · .coot · .nile · .geno · .moss · .usam · .maas", size: 13)
         subtitle.textColor = .secondaryLabelColor
         let titles = stack([label("STOP/Djvu Recovery", size: 25, bold: true), subtitle], spacing: 4)
-        let local = label("On-device recovery  ·  No backups", size: 12)
+        let local = label("On-device recovery", size: 12)
         local.textColor = .secondaryLabelColor
         let header = stack([logo, titles, flexibleSpace(), local], vertical: false, spacing: 12)
 
@@ -215,9 +219,10 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         selectionHeader.widthAnchor.constraint(equalTo: selection.widthAnchor).isActive = true
         selectionScroll.widthAnchor.constraint(equalTo: selection.widthAnchor).isActive = true
 
-        let locationHint = label("Validated cropped results replace encrypted files in the same folders. Files that fail stay untouched. No backups are kept.", size: 12)
+        let locationHint = label("Recovered copies are saved alongside encrypted originals. Originals are kept by default.", size: 12)
         locationHint.textColor = .secondaryLabelColor
-        let outputContent = stack([label("Recover in the original folders", bold: true), locationHint], spacing: 8)
+        let outputContent = stack([label("Recover in the original folders", bold: true), locationHint,
+            stack([button("Resume last job", #selector(resumeLastJob)), button("Retry failed", #selector(retryFailed))], vertical: false, spacing: 8)], spacing: 8)
         for v in outputContent.arrangedSubviews { v.widthAnchor.constraint(equalTo: outputContent.widthAnchor).isActive = true }
         let outputCard = card(outputContent)
         optionsButton.target = self
@@ -229,7 +234,7 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         optionsButton.title = ""
         let donorHelp = label("A healthy photo or video from the same camera can improve the result.", size: 11)
         donorHelp.textColor = .secondaryLabelColor
-        let settings = stack([label("Rotate recovered photos", size: 12, bold: true), rotate,
+        let settings = stack([deleteOriginal, label("Rotate recovered photos", size: 12, bold: true), rotate,
             label("Reference files (optional)", size: 12, bold: true), donorHelp, donorLabel,
             stack([button("Choose folder…", #selector(chooseDonor)), button("Clear", #selector(clearDonor))], vertical: false, spacing: 8)], spacing: 8)
         for v in settings.arrangedSubviews { v.widthAnchor.constraint(equalTo: settings.widthAnchor).isActive = true }
@@ -509,11 +514,11 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if ["jpg", "jpeg", "jfif"].contains(url.pathExtension.lowercased()), let image = NSImage(contentsOfFile: path) {
             preview.image = image
             emptySymbol.isHidden = true; emptyTitle.isHidden = true; emptyHint.isHidden = true
-            previewLabel.stringValue = "\(Int(image.size.width)) × \(Int(image.size.height)) · Partial reconstruction. Check colours and orientation."
+            previewLabel.stringValue = previewDetails[path] ?? "Partial reconstruction; original completeness unknown."
         } else {
             preview.image = nil
             showEmpty("Recovered video", "Choose Open file to play this result in your default video player.")
-            previewLabel.stringValue = "The beginning of the video may be damaged."
+            previewLabel.stringValue = previewDetails[path] ?? "Video structure checked; full playback and completeness are unverified."
         }
         previewLabel.toolTip = path
         openButton.isEnabled = true
@@ -534,6 +539,7 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func busy(_ value: Bool) {
         editingButtons.forEach { $0.isEnabled = !value }
         rotate.isEnabled = !value
+        deleteOriginal.isEnabled = !value
         recoverButton.isEnabled = !value && !inputs.isEmpty
         cancelButton.isEnabled = value
         cancelButton.isHidden = !value
@@ -544,6 +550,21 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if value { progress.startAnimation(nil) } else { progress.stopAnimation(nil) }
     }
 
+    func continueJob(_ mode: String) {
+        guard worker == nil, let path = UserDefaults.standard.string(forKey: "lastRecoveryReport"),
+              let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+              let report = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let sources = report["sources"] as? [String], !sources.isEmpty else {
+            showError("No saved job available to continue."); return
+        }
+        inputs = sources
+        resumeReport = path
+        retryMode = mode
+        startRecovery()
+    }
+    @objc func resumeLastJob() { continueJob("resume") }
+    @objc func retryFailed() { continueJob("retry_failed") }
+
     @objc func startRecovery() {
         guard worker == nil, !inputs.isEmpty else { return }
         cancelled = false
@@ -553,6 +574,7 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         finishedFiles = 0
         totalFiles = 0
         previewFiles.removeAll()
+        previewDetails.removeAll()
         resultPicker.removeAllItems()
         resultPicker.addItem(withTitle: "Waiting for results…")
         resultPicker.isEnabled = false
@@ -580,8 +602,13 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 throw NSError(domain: "Recovery", code: 1, userInfo: [NSLocalizedDescriptionKey: "Python runtime is missing. Rebuild with build-macos.sh in the djvu-recover folder."])
             }
             let python = bundledPython.path
-            let config: [String: Any] = ["inputs": inputs, "donors": donor.map { [$0] } ?? [],
-                                         "grey": "crop", "rotate": rotate.indexOfSelectedItem * 90]
+            var config: [String: Any] = ["inputs": inputs, "donors": donor.map { [$0] } ?? [],
+                                         "grey": "crop", "rotate": rotate.indexOfSelectedItem * 90,
+                                         "delete_original": deleteOriginal.state == .on]
+            if let report = resumeReport {
+                config = ["resume_report": report, "mode": retryMode, "delete_original": deleteOriginal.state == .on]
+                resumeReport = nil
+            }
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("djvu-job-\(UUID().uuidString).json")
             try JSONSerialization.data(withJSONObject: config).write(to: url)
             configURL = url
@@ -654,6 +681,7 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
             if totalFiles == 0 { status.stringValue = "Inspecting files…" }
             phaseLabel.stringValue = message
         case "started":
+            if !smoke, let report = event["report"] as? String { UserDefaults.standard.set(report, forKey: "lastRecoveryReport") }
             resultFolder = event["output"] as? String
             totalFiles = event["total"] as? Int ?? 0
             progress.isIndeterminate = false
@@ -674,13 +702,14 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 recoveredCount += 1
                 append("Partial recovery: \(event["detail"] ?? "")")
                 if let files = event["files"] as? [String] {
-                    if let source = event["source"] as? String, let index = inputs.firstIndex(of: source), let restored = files.first {
+                    if event["original_removed"] as? Bool == true, let source = event["source"] as? String, let index = inputs.firstIndex(of: source), let restored = files.first {
                         inputs[index] = restored
                     }
                     let previous = previewFiles.count
                     if previous == 0 { resultPicker.removeAllItems() }
                     previewFiles.append(contentsOf: files)
                     for file in files {
+                        previewDetails[file] = event["detail"] as? String ?? "Partial recovery; original completeness unknown."
                         resultPicker.addItem(withTitle: "\(resultPicker.numberOfItems + 1) · \(URL(fileURLWithPath: file).lastPathComponent)")
                         resultPicker.lastItem?.toolTip = file
                     }
@@ -701,7 +730,7 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
             skippedCount = event["skipped"] as? Int ?? 0
             resultFolder = event["output"] as? String
             status.stringValue = "\(recoveredCount) recovered · \(skippedCount) skipped · \(event["failed"] ?? 0) failed"
-            phaseLabel.stringValue = "Successful originals replaced · failed files left unchanged"
+            phaseLabel.stringValue = "Recovery finished · see activity for each file"
             phaseLabel.toolTip = resultFolder
             append("Recovered in the original folder: \(resultFolder ?? "")")
         case "error":
@@ -724,7 +753,7 @@ final class RecoveryApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         if recoveredCount == 0 {
             previewLabel.stringValue = skippedCount > 0 ? "Existing files are kept unchanged, without renaming or extra copies." : "Adding healthy reference files from the same camera may help."
-            showEmpty(cancelled ? "Recovery stopped" : (skippedCount > 0 ? "Files already exist" : "No files recovered"), cancelled ? "Unfinished files are unchanged. Completed files have been replaced." : (skippedCount > 0 ? "Choose Show results to view the output folder." : "Check the activity details below for the reason."))
+            showEmpty(cancelled ? "Recovery stopped" : (skippedCount > 0 ? "Files already exist" : "No files recovered"), cancelled ? "Unfinished files are unchanged. Completed results have been saved." : (skippedCount > 0 ? "Choose Show results to view the output folder." : "Check the activity details below for the reason."))
             if !cancelled && logScroll.isHidden { toggleDetails() }
             resultPicker.removeAllItems()
             resultPicker.addItem(withTitle: "No recovered files")

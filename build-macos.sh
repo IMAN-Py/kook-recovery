@@ -19,6 +19,7 @@ swiftc -swift-version 5 -module-cache-path "$project_dir/.swift-cache" -O macos/
 ditto "$project_dir/build/pyinstaller-dist/DjvuPython" "$app_dir/Contents/Resources/runtime"
 cp recover.py app_backend.py "$app_dir/Contents/Resources/engine/"
 cp -R vendor/photophoenix "$app_dir/Contents/Resources/engine/vendor/"
+find "$app_dir" -name __pycache__ -type d -prune -exec rm -rf {} +
 cp THIRD-PARTY-NOTICES.md "$app_dir/Contents/Resources/"
 cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -29,8 +30,8 @@ cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>STOP-Djvu Recovery</string>
 <key>CFBundleDisplayName</key><string>STOP-Djvu Recovery</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>1.1.1</string>
-<key>CFBundleVersion</key><string>3</string>
+<key>CFBundleShortVersionString</key><string>1.2.0</string>
+<key>CFBundleVersion</key><string>4</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSHumanReadableCopyright</key><string>Original app: Copyright 2026 Iman Batabaei. PhotoPhoenix: Copyright 2026 Ahmed Raza Bhatti. See bundled notices.</string>
@@ -38,4 +39,4 @@ cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 PLIST
 codesign --force --deep --sign - "$app_dir"
 echo "Built: $app_dir"
-echo "The app includes its Python runtime. ffprobe is still required for video validation."
+echo "The app includes its Python runtime. ffmpeg is optional for reference-video matching."

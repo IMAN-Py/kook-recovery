@@ -47,9 +47,58 @@ class BackendTests(unittest.TestCase):
     def job(self, inputs, worker=success):
         output = io.StringIO()
         with patch.object(backend.recover, 'build_library', return_value=object()), patch.object(backend.recover, 'recover_photo', side_effect=worker), contextlib.redirect_stdout(output):
-            code = backend.run({'inputs': list(map(str, inputs))})
+            code = backend.run({'inputs': list(map(str, inputs)), 'delete_original': True})
         events = [json.loads(line) for line in output.getvalue().splitlines()]
         return code, events
+
+    def safe_job(self, config, worker=success):
+        output = io.StringIO()
+        with patch.object(backend.recover, 'build_library', return_value=object()), patch.object(backend.recover, 'recover_photo', side_effect=worker), contextlib.redirect_stdout(output):
+            code = backend.run(config)
+        return code, [json.loads(line) for line in output.getvalue().splitlines()]
+
+    def test_default_preserves_original_and_journals_output(self):
+        source = self.root / 'photo.jpg.kook'
+        encrypted(source)
+        before = source.read_bytes()
+        code, events = self.safe_job({'inputs': [str(source)]})
+        self.assertEqual(code, 0)
+        self.assertEqual(source.read_bytes(), before)
+        row = next(e for e in events if e['event'] == 'result')
+        self.assertFalse(row['original_removed'])
+        self.assertEqual(row['quality'], 'partial_photo')
+        self.assertEqual(row['output_sha256'][str(source.with_suffix(''))], backend.digest(source.with_suffix('')))
+
+    def test_resume_after_interruption_and_retry_failed(self):
+        sources = [self.root / (n + '.jpg.kook') for n in ['a', 'b', 'c']]
+        for p in sources: encrypted(p)
+        output = io.StringIO()
+        calls = []
+        def stop_on_second(*args):
+            calls.append(args[0])
+            if len(calls) == 2: raise KeyboardInterrupt()
+            return success(*args)
+        with patch.object(backend.recover, 'build_library', return_value=object()), patch.object(backend.recover, 'recover_photo', side_effect=stop_on_second), contextlib.redirect_stdout(output), self.assertRaises(KeyboardInterrupt):
+            backend.run({'inputs': [str(self.root)]})
+        events = [json.loads(line) for line in output.getvalue().splitlines()]
+        report = next(e['report'] for e in events if e['event'] == 'started')
+        def fail_b(*args):
+            if Path(args[0]).name.startswith('b'): raise ValueError('missing reference')
+            return success(*args)
+        code, events = self.safe_job({'resume_report': report}, fail_b)
+        self.assertEqual(code, 2)
+        self.assertEqual([e['source'] for e in events if e['event'] == 'result'], list(map(str, sources[1:])))
+        report = events[-1]['report']
+        code, events = self.safe_job({'resume_report': report, 'mode': 'retry_failed'})
+        self.assertEqual(code, 0)
+        self.assertEqual([e['source'] for e in events if e['event'] == 'result'], [str(sources[1])])
+        self.assertTrue(all(p.exists() for p in sources))
+
+    def test_preflight_reports_missing_optional_tool_once(self):
+        messages = []
+        with patch.object(backend.recover.shutil, 'which', return_value=None):
+            backend.recover.preflight([(None, None, 'video')] * 3, str(self.root), messages.append)
+        self.assertEqual(sum('ffmpeg missing' in text for text in messages), 1)
 
     def test_all_enabled_suffixes_replace_only_valid_sources(self):
         for suffix in backend.recover.RANSOMWARE_EXTENSIONS:
@@ -224,7 +273,7 @@ class BackendTests(unittest.TestCase):
         old_handler = signal.signal(signal.SIGTERM, handler)
         try:
             with patch.object(backend, 'publish_file', side_effect=cancelling_publish), self.assertRaises(Cancelled):
-                backend.replace_source(source, reconstructed, expected, 'photo')
+                backend.replace_source(source, reconstructed, expected, 'photo', delete_original=True)
         finally:
             signal.signal(signal.SIGTERM, old_handler)
         self.assertFalse(source.exists())

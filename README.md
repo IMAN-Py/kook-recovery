@@ -44,31 +44,15 @@ one output: a cropped photo (or recovered video). **Open file** opens the select
 **Show results** opens the original folder for the first selected source. Activity details stay collapsed until requested
 or an error occurs. Quitting during recovery asks before stopping the active job.
 
-Recovery now happens **in the exact original folders**. For example,
-`Holiday/IMG_1234.jpg.kook` becomes `Holiday/IMG_1234.jpg`. On successful validation,
-the encrypted file with a supported suffix is deleted. **No backup of successfully replaced originals is
-kept.** This is partial, cropped reconstruction, so the missing encrypted image data
-cannot be recovered later from a deleted original.
+Recovered copies are saved alongside encrypted originals. **Originals are kept by default.** The optional “Delete originals after successful recovery” checkbox removes originals only after output validation and source-integrity checks. It starts unchecked each time the app launches. Existing files are never overwritten.
 
-The app checks that a generated JPEG fully decodes, verifies the saved bytes and unchanged
-source, and only then removes the encrypted file. If source deletion fails, it removes
-its newly generated result and retains the original. Cancellation is deferred across
-this short replacement step so it cannot delete both files.
+**Resume last job** continues files not yet recorded as finished in the last job. **Retry failed** processes only its failed files, using the saved rotation and reference settings. Job reports are checkpointed before processing and after each file, and the last report is remembered across app restarts. A file interrupted during publication may leave a valid output; existing outputs are preserved and reported as conflicts rather than overwritten. Missing source files cannot be retried. Reports and checksums remain in the local app cache.
 
-Unsupported formats, failed reconstructions, results flagged for review, and filename
-conflicts are left untouched. Healthy files are ignored. Original filenames and nested
-folder locations are preserved, removing only the ransomware suffix. No numbered names,
-extra folders, full-image duplicates, or backup copies are created. Reports containing
-paths, status, and checksums are stored in the app cache under `reports/`.
+Each result describes partial photo reconstruction, independently extracted embedded images (possibly previews), or a structurally checked video. No “100% of the original” claim is made. Video structure validation does not guarantee complete playback; check the result in a player. Uncertain reconstructions remain failures requiring review.
 
-Video replacement additionally requires `ffprobe` to validate the rebuilt video stream.
-If it is unavailable, the encrypted video is left unchanged. **Stop** leaves unfinished
-files untouched; already completed replacements remain in place.
+Preflight checks output-folder access and reports optional video capabilities once per batch. Python, NumPy, and Pillow are bundled with the macOS app. `ffprobe` is not required. Optional `ffmpeg` helps choose healthy reference videos when the encrypted index must be rebuilt; videos with surviving indexes can be processed without it.
 
-The downloadable macOS app bundles its Python runtime; the engine's writable cache
-is stored in `~/Library/Caches/local.djvu-recover.desktop`. The release currently
-targets Apple Silicon. Video replacement requires `ffprobe` to be installed on the
-Mac; without it, encrypted videos remain untouched.
+The app is locally signed but **not Apple notarized**. A Developer ID certificate and Apple Developer membership are required to complete that step. See [SIGNING.md](SIGNING.md) for the prepared workflow.
 
 To rebuild after changes, run `./build-macos.sh` again.
 
@@ -81,13 +65,13 @@ Validation:
 
 The smoke test opens the native window, runs the same worker used by the Recover button,
 loads the recovered preview, and saves `app-smoke-test.json` and `app-preview.png` in
-`<test-artifacts>-diagnostics` before closing. It modifies the selected input in place;
+`<test-artifacts>-diagnostics` before closing. It creates recovered copies beside the input;
 use disposable copies for tests. Omit `--rotate-180` to test without rotation.
 
 Run `./macos/test-app.sh` for the GUI suite. It creates disposable copies of the sample
 and checks individual-file and nested-folder replacement, failure preservation, filename
 conflicts, cancellation, and batches mixing successful and unsupported files. It verifies
-cropped JPEGs, deletion of only successfully replaced encrypted files, and byte-for-byte
+cropped JPEGs, preservation of encrypted originals by default, and byte-for-byte
 preservation of everything else. The user's supplied sample is never modified by this
 suite. Reports and captures are under `ui-tests/in-place-*/`.
 
@@ -195,7 +179,7 @@ are skipped, so re-running is safe.
 * EXIF, GPS and the capture date are inside the destroyed part; they are not restored.
 * Without `--donors`, colours are estimated from the surviving data - usually right, but skin
   tones and skies can be slightly off.
-* The Windows CLI needs `ffmpeg` on `PATH` for some MP4 videos whose playback index was encrypted; it can also help with sound. See the [Windows CLI guide](WINDOWS-CLI.md) for installation steps. The macOS app uses `ffprobe` to validate rebuilt videos.
+* The Windows CLI needs `ffmpeg` on `PATH` for some MP4 videos whose playback index was encrypted; it can also help with sound. See the [Windows CLI guide](WINDOWS-CLI.md) for installation steps. Both interfaces validate video structure without requiring `ffprobe`.
 * Camera tables learned from your photos are cached in `.cache\` next to the script (or in
   the temp folder if that is not writable).
 * Files under ~150 KB were encrypted completely - nothing left to rebuild.

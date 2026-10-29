@@ -10,6 +10,7 @@ the rest of a JPEG or a movie is still intact and can be rebuilt around the dama
 import argparse
 import collections
 import io
+import hashlib
 import json
 import os
 import re
@@ -385,7 +386,7 @@ def _recover_photo(path, dest, lib, grey, rotate):
         with open(target, "wb") as fh:
             fh.write(rotate_jpeg(data, rotate))
         written.append(target)
-    detail = f"{res['method']}, {res.get('dims', '')}, ~{res['frac']:.0%} of the picture"
+    detail = f"Partial photo reconstruction ({res['method']}), {res.get('dims', '')}; original image completeness unknown"
     if cropped and grey == "crop":
         detail += " (grey strip cropped)"
     elif cropped and grey == "both":
@@ -396,7 +397,7 @@ def _recover_photo(path, dest, lib, grey, rotate):
 def recover_movie(path, dest, refs, temp_dir):
     try:
         res = video.recover_video(path, dest)
-        return "ok", f"video {res['dims']}, first ~{res['damaged_seconds']:g} s damaged", [dest]
+        return "ok", f"Video reconstruction (playback not verified), {res['dims']}, first ~{res['damaged_seconds']:g} s damaged", [dest]
     except ValueError as exc:
         if "whole file is inside the encrypted" in str(exc):
             raise RuntimeError("the whole file was inside the encrypted 150 KB - nothing to rebuild") from None
@@ -413,7 +414,7 @@ def recover_movie(path, dest, refs, temp_dir):
         if "whole file is inside the encrypted" in text:
             raise RuntimeError("the whole file was inside the encrypted 150 KB - nothing to rebuild") from None
         raise RuntimeError(text) from None
-    detail = f"video {res.get('dims', '')}, {res.get('frames', '?')} frames rebuilt"
+    detail = f"Video reconstruction (playback not verified), {res.get('dims', '')}, {res.get('frames', '?')} frames rebuilt"
     if res.get("note"):
         detail += f" ({res['note']})"
     return res.get("status", "ok"), detail, [dest]
@@ -474,12 +475,29 @@ def ask_output(default):
 
 
 def run_recovery(found, out_root, lib, refs, grey, rotate, overwrite,
-                 say=print, progress=None, should_stop=None):
+                 say=print, progress=None, should_stop=None, report_path=None, retry_failed=False):
     """Rebuild every file in `found` ([(path, root, kind)]).  Shared by the command line
     and the app window: `say` prints one line per file, `progress(done, total)` is called
     after each, `should_stop()` is polled before the next file.
 
     -> {counts, failures, total} counts = ok/review/skipped/failed."""
+    preflight(found, out_root, say)
+    report_path = report_path or os.path.join(out_root, "recovery-report.json")
+    previous = {}
+    if os.path.isfile(report_path):
+        with open(report_path, encoding="utf-8") as stream:
+            previous = json.load(stream).get("results", {})
+    if retry_failed:
+        found = [item for item in found if previous.get(os.path.abspath(item[0]), {}).get("status") == "failed"]
+    journal = {"results": dict(previous), "complete": False}
+    def checkpoint():
+        temp = report_path + ".tmp"
+        with open(temp, "w", encoding="utf-8") as stream:
+            json.dump(journal, stream, indent=2)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temp, report_path)
+    checkpoint()
     counts = {"ok": 0, "review": 0, "skipped": 0, "failed": 0}
     failures = []
     total = len(found)
@@ -488,9 +506,20 @@ def run_recovery(found, out_root, lib, refs, grey, rotate, overwrite,
         if should_stop and should_stop():
             say("Stopped - the files already recovered are kept.")
             break
+        key = os.path.abspath(path)
+        entry = {"status": "failed"}
         rel = os.path.relpath(path, root)
         dest = output_path(path, root, out_root, kind)
-        if os.path.exists(dest):
+        prior = previous.get(key, {})
+        verified = bool(prior.get("outputs"))
+        for output, expected in prior.get("outputs", {}).items():
+            try:
+                with open(output, "rb") as stream:
+                    verified = verified and hashlib.file_digest(stream, "sha256").hexdigest() == expected
+            except OSError:
+                verified = False
+        if os.path.exists(dest) or verified:
+            entry = previous.get(key, {"status": "skipped"})
             counts["skipped"] += 1
             say(f"[{index:>{width}}/{total}] skip  {rel}  (already recovered)")
         else:
@@ -498,7 +527,7 @@ def run_recovery(found, out_root, lib, refs, grey, rotate, overwrite,
             existed = os.path.exists(dest)
             try:
                 if kind == "video":
-                    status, detail, _ = recover_movie(path, dest, refs,
+                    status, detail, written = recover_movie(path, dest, refs,
                                                       os.path.join(cache_dir(), "tmp"))
                     validate_result(dest, kind)
                 elif kind == "photo":
@@ -507,7 +536,11 @@ def run_recovery(found, out_root, lib, refs, grey, rotate, overwrite,
                         for item in written:
                             validate_result(item, kind)
                 else:
-                    status, detail, _ = recover_salvage(path, dest)
+                    status, detail, written = recover_salvage(path, dest)
+                entry = {"status": status, "detail": detail, "outputs": {}}
+                for item in written:
+                    with open(item, "rb") as stream:
+                        entry["outputs"][os.path.abspath(item)] = hashlib.file_digest(stream, "sha256").hexdigest()
                 counts[status if status in counts else "ok"] += 1
                 say(f"[{index:>{width}}/{total}] {status:<5} {rel}  ({detail})")
             except KeyboardInterrupt:
@@ -515,6 +548,7 @@ def run_recovery(found, out_root, lib, refs, grey, rotate, overwrite,
             except Exception as exc:
                 counts["failed"] += 1
                 reason = str(exc) or exc.__class__.__name__
+                entry = {"status": "failed", "error": reason}
                 failures.append((rel, reason))
                 # a half-written file would look like a successful recovery next time: drop it
                 if not existed and os.path.exists(dest):
@@ -523,9 +557,26 @@ def run_recovery(found, out_root, lib, refs, grey, rotate, overwrite,
                     except OSError:
                         pass
                 say(f"[{index:>{width}}/{total}] FAIL  {rel}  ({reason})")
+        journal["results"][key] = entry
+        journal["complete"] = index == total
+        checkpoint()
         if progress:
             progress(index, total)
     return {"counts": counts, "failures": failures, "total": total}
+
+
+def preflight(found, output, say=print):
+    """Check output access and announce optional capabilities once per batch."""
+    os.makedirs(output, exist_ok=True)
+    with tempfile.TemporaryFile(dir=output):
+        pass
+    say("Preflight: Python, NumPy and Pillow loaded; output folder is writable.")
+    if any(kind == "video" for _, _, kind in found):
+        if shutil.which("ffmpeg"):
+            say("Preflight: ffmpeg available for reference-video matching.")
+        else:
+            say("Preflight: ffmpeg missing. Videos with surviving indexes can still be reconstructed; some encrypted-index videos need ffmpeg and a healthy reference. Install ffmpeg and retry those failures. Video validation checks structure, not full playback.")
+    say("Recovery quality: embedded images may be previews; reconstructed photos may be cropped or have incorrect colours. No percentage of the original is guaranteed.")
 
 
 def self_check():
@@ -553,6 +604,7 @@ def main(argv=None):
     ap.add_argument("--rotate", type=int, choices=(0, 90, 180, 270), default=0,
                     help="turn photos upright (the original EXIF orientation is lost)")
     ap.add_argument("--overwrite", action="store_true", help="legacy option; existing output files are always preserved")
+    ap.add_argument("--retry-failed", action="store_true", help="retry only failed entries in the output folder recovery-report.json; normal reruns skip existing outputs")
     ap.add_argument("--check", action="store_true", help="verify the installation and exit")
     args = ap.parse_args(argv)
 
@@ -606,7 +658,7 @@ def main(argv=None):
         return 1
 
     result = run_recovery(found, out_root, lib, refs, args.grey, args.rotate,
-                          args.overwrite, say=print)
+                          args.overwrite, say=print, retry_failed=args.retry_failed)
     counts, failures = result["counts"], result["failures"]
 
     print("\n" + "-" * 74)

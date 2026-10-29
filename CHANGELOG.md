@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0
+
+- Keep encrypted originals by default; optional deletion remains explicit.
+- Checkpoint desktop jobs and add Resume last job / Retry failed controls.
+- Add CLI failure reports and --retry-failed.
+- Explain partial reconstruction quality without misleading original-completeness percentages.
+- Preflight output access and optional ffmpeg capabilities.
+- Prepare Developer ID signing and notarization tooling; notarization remains blocked pending Apple Developer credentials.
+- Additional suffixes remain experimental until genuine samples are available.
+
 ## 1.1.1
 
 - Rename the project to STOP/Djvu Recovery, covering the supported ransomware family.

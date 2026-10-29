@@ -71,3 +71,7 @@ The package includes third-party notices. PhotoPhoenix is licensed under the Pol
 ## Ransomware suffixes
 
 Current source supports partial recovery attempts for `.kook`, `.coot`, `.nile`, `.geno`, `.moss`, `.usam`, and `.maas`. The additional suffixes have synthetic coverage; real samples per variant remain unverified. Compatible STOP/Djvu structure and successful output validation are required. Earlier release binaries must be rebuilt to include this support.
+
+## Continue and retry
+
+Normal reruns preserve existing output files. Use `--retry-failed` with the same input and output folders to retry only failures recorded in `<output>/recovery-report.json`. The report is saved after each completed file. The CLI preserves encrypted originals. Recovery percentages are not estimates of original image completeness. Preflight reports optional ffmpeg availability once before processing.

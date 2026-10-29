@@ -1,4 +1,22 @@
 """Small PyInstaller entry point that runs the bundled recovery worker."""
+# Explicit imports keep dynamically loaded worker dependencies in the bundle.
+import argparse
+import collections
+import contextlib
+import datetime
+import errno
+import hashlib
+import io
+import json
+import mmap
+import os
+import re
+import shutil
+import signal
+import struct
+import subprocess
+import tempfile
+import uuid
 import runpy
 import sys
 from pathlib import Path

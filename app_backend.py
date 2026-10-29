@@ -121,7 +121,7 @@ def commit_guard():
         yield
 
 
-def replace_source(source, reconstructed, before, kind):
+def replace_source(source, reconstructed, before, kind, delete_original=False):
     if source.suffix.lower() not in recover.RANSOMWARE_EXTENSIONS:
         raise ValueError("Only supported STOP/Djvu source suffixes may be replaced.")
     recover.encrypted_payload_size(source)
@@ -145,7 +145,8 @@ def replace_source(source, reconstructed, before, kind):
                 raise ValueError("Saved file failed verification; original left unchanged.")
             if source.is_symlink() or digest(source) != before:
                 raise ValueError("Source changed during recovery; left unchanged.")
-            source.unlink()
+            if delete_original:
+                source.unlink()
         except BaseException:
             if published is not None and os.path.lexists(source):
                 try:
@@ -159,6 +160,25 @@ def replace_source(source, reconstructed, before, kind):
 
 
 def run(config):
+    previous = None
+    if config.get("resume_report"):
+        previous = json.loads(Path(config["resume_report"]).read_text())
+        prior = {r["source"]: r for r in previous.get("results", [])}
+        mode = config.get("mode", "resume")
+        if mode not in ("resume", "retry_failed"):
+            raise ValueError("Unknown resume mode")
+        selected = []
+        for name in previous["sources"]:
+            row = prior.get(name)
+            if mode == "retry_failed":
+                include = row is not None and row["status"] == "failed"
+            else:
+                include = row is None
+            if include and Path(name).is_file():
+                selected.append(name)
+        if not selected:
+            raise ValueError("No remaining files for this operation. Use Retry failed for completed failures.")
+        config = dict(previous.get("config", {}), **config, inputs=selected)
     inputs = config.get("inputs", [])
     if not inputs:
         raise ValueError("Select at least one encrypted file or folder.")
@@ -181,7 +201,24 @@ def run(config):
     reports = Path(recover.cache_dir()) / "reports"
     reports.mkdir(parents=True, exist_ok=True)
     report_path = reports / (datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "_" + uuid.uuid4().hex + ".json")
-    emit("started", total=len(found), output=str(output))
+    recover.preflight(found, str(output), lambda text: emit("message", text=text))
+    report = dict(output=str(output), sources=[str(p) for p, _, _ in found],
+                  config={k: config[k] for k in ("donors", "rotate", "delete_original") if k in config},
+                  results=[], complete=False,
+                  note="Partial reconstruction; encrypted bytes are not decrypted.")
+    def checkpoint():
+        temp = report_path.with_suffix(".json.tmp")
+        with temp.open("w", encoding="utf-8") as stream:
+            json.dump(report, stream, indent=2)
+            stream.flush()
+            os.fsync(stream.fileno())
+        temp.replace(report_path)
+    prior_results = [r for r in previous.get("results", []) if r["source"] not in inputs] if previous else []
+    if previous:
+        report["sources"] = previous["sources"]
+    report["results"] = prior_results
+    checkpoint()
+    emit("started", total=len(found), output=str(output), report=str(report_path))
     lib, refs = None, None
     say = lambda text: emit("message", text=text)
     results = []
@@ -221,20 +258,19 @@ def run(config):
                 if fragments:
                     saved = [str(publish_file(item, path.parent)) for item in written]
                 else:
-                    saved = [str(replace_source(path, written[0], before, kind))]
+                    saved = [str(replace_source(path, written[0], before, kind, config.get("delete_original") is True))]
                 result.update(status="partial", engine_status=status, detail=detail,
-                              files=saved, original_removed=not fragments)
+                              files=saved, original_removed=not fragments and config.get("delete_original") is True,
+                              quality=("embedded_image" if fragments else "partial_photo" if kind == "photo" else "structurally_valid_video"),
+                              output_sha256={item: digest(item) for item in saved})
         except OutputExists:
             result.update(status="skipped", detail=f"Target already exists; encrypted original left unchanged: {target}")
         except Exception as exc:
             result["error"] = str(exc) or type(exc).__name__
         results.append(result)
+        report.update(results=prior_results + results, complete=index == len(found))
+        checkpoint()
         emit("result", **result)
-        report = dict(output=str(output), results=results, complete=index == len(found),
-                      note="Partial reconstruction, not decryption. Missing pixels and original colours may not be recoverable.")
-        temp = report_path.with_suffix(".json.tmp")
-        temp.write_text(json.dumps(report, indent=2), encoding="utf-8")
-        temp.replace(report_path)
     recovered = sum(r["status"] == "partial" for r in results)
     skipped = sum(r["status"] == "skipped" for r in results)
     failed = len(results) - recovered - skipped

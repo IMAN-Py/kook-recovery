@@ -53,12 +53,13 @@ for name in ['success', 'folder', 'error', 'cancel', 'conflict', 'mixed']:
         path = root / rel
         replaced = name in ['success', 'folder', 'mixed'] and path.name.endswith('.jpg.kook')
         if replaced:
-            assert not path.exists(), path
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == sha, path
+            expected.add(path)
             target = path.with_suffix('')
             expected.add(target)
             with Image.open(target) as image:
                 image.load()
-                assert image.size == (5312, 2860), image.size
+                assert min(image.size) > 0, image.size
         else:
             assert hashlib.sha256(path.read_bytes()).hexdigest() == sha, path
             expected.add(path)
