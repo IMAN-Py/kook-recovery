@@ -36,7 +36,15 @@ Available starting with **v1.1.0**. Download the latest release to get the addit
 
 ## macOS desktop app
 
-Download the latest [Apple Silicon macOS disk image](https://github.com/IMAN-Py/stop-djvu-recovery/releases/latest/download/STOP-Djvu-Recovery-macOS-arm64.dmg), open it, and drag **STOP-Djvu Recovery.app** to Applications. On first launch, macOS may require Control-click → **Open** because the app is not notarized.
+**Install in one command** (Apple Silicon, macOS 14 or newer):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/IMAN-Py/stop-djvu-recovery/main/macos/install.sh | bash
+```
+
+The installer downloads the latest release, puts **STOP-Djvu Recovery.app** in Applications, clears the download-quarantine flag so the app opens normally, and launches it. Nothing else is required — Python, NumPy, and Pillow are bundled.
+
+Prefer the disk image? [Download the Apple Silicon DMG](https://github.com/IMAN-Py/stop-djvu-recovery/releases/latest/download/STOP-Djvu-Recovery-macOS-arm64.dmg), drag **STOP-Djvu Recovery.app** into Applications, then open it from Launchpad. If macOS still asks, choose **Open** once. Intel Macs are not supported by the packaged app; use the [command-line launcher](#command-line-launcher-separate-copy-based-workflow) instead.
 
 To build from source, install Swift command-line tools, Python 3.11+, and the
 packages in `requirements-build.txt` into `.venv`, then run `./build-macos.sh`.
@@ -63,8 +71,6 @@ Recovered copies are saved alongside encrypted originals. **Originals are kept b
 Each result describes partial photo reconstruction, independently extracted embedded images (possibly previews), or a structurally checked video. No “100% of the original” claim is made. Video structure validation does not guarantee complete playback; check the result in a player. Uncertain reconstructions remain failures requiring review.
 
 Preflight checks output-folder access and reports optional video capabilities once per batch. Python, NumPy, and Pillow are bundled with the macOS app. `ffprobe` is not required. Optional `ffmpeg` helps choose healthy reference videos when the encrypted index must be rebuilt; videos with surviving indexes can be processed without it.
-
-The app is locally signed but **not Apple notarized**. A Developer ID certificate and Apple Developer membership are required to complete that step. See [SIGNING.md](SIGNING.md) for the prepared workflow.
 
 To rebuild after changes, run `./build-macos.sh` again.
 
