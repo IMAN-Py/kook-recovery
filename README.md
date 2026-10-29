@@ -1,5 +1,12 @@
 # STOP/Djvu Recovery
 
+<!-- cumulative-traffic -->
+[![All-time views](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FIMAN-Py%2Fstop-djvu-recovery%2Fmain%2F.github%2Ftraffic%2Fviews.json)](https://github.com/IMAN-Py/stop-djvu-recovery/blob/main/.github/traffic/history.json)
+[![All-time clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FIMAN-Py%2Fstop-djvu-recovery%2Fmain%2F.github%2Ftraffic%2Fclones.json)](https://github.com/IMAN-Py/stop-djvu-recovery/blob/main/.github/traffic/history.json)
+
+Traffic totals are archived from GitHub starting at repository creation and refreshed periodically from the maintainer’s Mac. They include automated activity and may lag. If collection misses GitHub’s retention window, badges switch to “tracked” rather than claiming a complete all-time total.
+<!-- /cumulative-traffic -->
+
 [![Stars](https://img.shields.io/github/stars/IMAN-Py/stop-djvu-recovery?style=flat)](https://github.com/IMAN-Py/stop-djvu-recovery/stargazers)
 [![Forks](https://img.shields.io/github/forks/IMAN-Py/stop-djvu-recovery?style=flat)](https://github.com/IMAN-Py/stop-djvu-recovery/forks)
 [![Downloads](https://img.shields.io/github/downloads/IMAN-Py/stop-djvu-recovery/total?style=flat)](https://github.com/IMAN-Py/stop-djvu-recovery/releases)
