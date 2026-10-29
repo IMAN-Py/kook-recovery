@@ -1,5 +1,11 @@
 # STOP/Djvu Recovery
 
+[![Stars](https://img.shields.io/github/stars/IMAN-Py/stop-djvu-recovery?style=flat)](https://github.com/IMAN-Py/stop-djvu-recovery/stargazers)
+[![Forks](https://img.shields.io/github/forks/IMAN-Py/stop-djvu-recovery?style=flat)](https://github.com/IMAN-Py/stop-djvu-recovery/forks)
+[![Downloads](https://img.shields.io/github/downloads/IMAN-Py/stop-djvu-recovery/total?style=flat)](https://github.com/IMAN-Py/stop-djvu-recovery/releases)
+[![Latest release](https://img.shields.io/github/v/release/IMAN-Py/stop-djvu-recovery?style=flat)](https://github.com/IMAN-Py/stop-djvu-recovery/releases/latest)
+[![Windows build](https://github.com/IMAN-Py/stop-djvu-recovery/actions/workflows/windows-release.yml/badge.svg)](https://github.com/IMAN-Py/stop-djvu-recovery/actions/workflows/windows-release.yml)
+
 Recover photos and videos from STOP/Djvu ransomware files ending in `.kook`, `.coot`, `.nile`, `.geno`, `.moss`, `.usam`, or `.maas` with
 local, partial reconstruction. No decryption key or network access is used.
 
