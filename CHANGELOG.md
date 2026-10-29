@@ -1,0 +1,15 @@
+# Changelog
+
+## 1.1.0
+
+- Enable partial recovery attempts for `.coot`, `.nile`, `.geno`, `.moss`, `.usam`, and `.maas`, alongside `.kook`, in the desktop app and CLI.
+- Preserve original media filenames and video container selection across supported suffixes.
+- Require a compatible STOP/Djvu trailer before replacing any encrypted source.
+- Display the supported suffixes in the app and document their limits.
+- Add regression coverage for supported suffixes, excluded files, and invalid-source preservation. All 26 tests pass.
+
+The new suffixes have synthetic test coverage; real samples for each variant remain unverified. Recovery reconstructs surviving data and does not decrypt encrypted bytes. Older `.djvu`, `.udjvu`, and `.djvuu` variants remain excluded.
+
+## 1.0.0
+
+Initial public release.

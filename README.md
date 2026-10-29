@@ -20,7 +20,7 @@ The app and CLI accept `.kook`, `.coot`, `.nile`, `.geno`, `.moss`, `.usam`, and
 
 The six additional suffixes are enabled with synthetic regression coverage. Real encrypted samples from each variant have not yet been verified. Older `.djvu`, `.udjvu`, and `.djvuu` variants are not enabled. Fully encrypted files still require a key or an intact backup. Other suffixes and healthy files are ignored.
 
-This support describes the current source and newly built app. Previously downloaded releases retain their original capabilities until rebuilt or replaced by a newer release.
+Available starting with **v1.1.0**. Download the latest release to get the additional suffix support.
 
 ## macOS desktop app
 
