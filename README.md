@@ -24,9 +24,6 @@ local, partial reconstruction. No decryption key or network access is used.
 **Original project code and app: Copyright © 2026 Iman .** Third-party
 components retain their authorship and licenses; see [third-party notices](THIRD-PARTY-NOTICES.md).
 
-Repository name: `stop-djvu-recovery`
-Suggested GitHub description: `Local partial photo/video recovery for STOP/Djvu: .kook, .coot, .nile, .geno, .moss, .usam, .maas.`
-
 Attempt partial reconstruction of photos and videos damaged by STOP/Djvu ransomware
 (enabled suffixes: `.kook`, `.coot`, `.nile`, `.geno`, `.moss`, `.usam`, `.maas`). Recovery runs locally without
 a key or an internet connection. This is not decryption: encrypted bytes remain lost,
